@@ -27,7 +27,20 @@ cstring_clone_multiple :: proc(strs: []cstring, allocator := context.allocator, 
     return clones
 }
 
+cstring_clone_from_dynamic :: proc(strs: ^[dynamic]cstring, allocator := context.allocator, location := #caller_location) -> []cstring
+{
+    assert(strs != nil, "nil cstring slice parameter")
+
+    strs_len := len(strs)
+    clones, alloc_err := make([]cstring, strs_len, allocator)
+    assert(alloc_err == .None, "allocation error")
+
+    for i := 0; i < strs_len; i += 1 do clones[i] = cstring_clone_single(strs[i], allocator)
+    return clones
+}
+
 cstring_clone :: proc{
     cstring_clone_single,
     cstring_clone_multiple,
+    cstring_clone_from_dynamic,
 }

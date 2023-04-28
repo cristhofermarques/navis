@@ -84,3 +84,13 @@ slice_index_of :: #force_inline proc(slice: []$T, element: T) -> (int, bool) #op
     for element_, index in slice do if element_ == element do return index, true
     return -1, false
 }
+
+may_len :: proc{
+    slice_may_len,
+    dynamic_may_len,
+}
+
+as_mult_ptr :: proc{
+    slice_as_mult_ptr,
+    dynamic_as_mult_ptr,
+}

@@ -16,13 +16,16 @@ when api.IMPORT
     @(default_calling_convention="odin")
     foreign navis
     {
+        /* Instance */
         @(link_prefix=PREFIX)
-        instance_create_from_descriptor :: proc(desc: ^Instance_Descriptor, allocator := context.allocator) -> (Instance, bool) #optional_ok ---
+        instance_create_from_descriptor :: proc(desc: ^Instance_Descriptor, allocator := context.allocator, location := #caller_location) -> (Instance, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        instance_create_from_parameters :: proc(app_name: cstring, app_version, api_version: u32, extensions, layers: []cstring, allocator := context.allocator) -> (Instance, bool) #optional_ok ---
+        instance_create_from_parameters :: proc(app_name: cstring, app_version, api_version: u32, extensions, layers: []cstring, allocator := context.allocator, location := #caller_location) -> (Instance, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        instance_destroy :: proc(instance: ^Instance) ---
+        instance_destroy :: proc(instance: ^Instance, location := #caller_location) ---
+
+        /* Debug */
     }
 }
