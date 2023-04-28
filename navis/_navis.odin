@@ -7,6 +7,7 @@ import "commons/log"
 import "commons"
 
 import graphics_commons "graphics/commons"
+import "graphics/vulkan/vk"
 import "graphics/ui"
 import "graphics"
 
