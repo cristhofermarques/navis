@@ -5,6 +5,8 @@ import "core:dynlib"
 
 when api.EXPORT
 {
+	import "navis:commons/log"
+
     //Vulkan library
     @(export=api.SHARED, link_prefix=PREFIX)
     _vulkan_library: dynlib.Library = nil
@@ -26,6 +28,7 @@ when api.EXPORT
         when ODIN_OS == .Windows do vulkan_library_name = "vulkan-1.dll"
         when ODIN_OS == .Linux do vulkan_library_name = "vulkan.so.1"
 
+		log.verbose_info(args = {"loading vulkan shared library"})
         library, success := dynlib.load_library(vulkan_library_name)
         if success do _vulkan_library = library
         return _vulkan_library, success
@@ -36,6 +39,8 @@ when api.EXPORT
     unload_vulkan_library :: proc() -> bool
     {
         if !is_vulkan_library_loaded() do return false
+
+		log.verbose_info(args = {"unloading vulkan shared library"})
         success := dynlib.unload_library(_vulkan_library)
         if success do _vulkan_library = nil
         return success
@@ -50,7 +55,8 @@ when api.EXPORT
         vulkan_library, success = get_or_load_vulkan_library()
         if !success do return .ERROR_UNKNOWN
 
-        address, found := dynlib.symbol_address(vulkan_library, "vkGetInstanceProcAddr")
+		VK_GET_INSTANCE_PROC_ADDR :: "vkGetInstanceProcAddr"
+        address, found := dynlib.symbol_address(vulkan_library, VK_GET_INSTANCE_PROC_ADDR)
         if found do load_global_procedures(rawptr(address))
 
         result := CreateInstance(instance_create_info, allocation_callbacks, instance)

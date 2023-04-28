@@ -1,5 +1,7 @@
 package utility
 
+import "core:intrinsics"
+
 /*
 Returns 'slice' length if it is not 'nil'
 */
