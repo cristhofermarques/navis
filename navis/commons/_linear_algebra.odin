@@ -1,15 +1,6 @@
 package commons
 
-API_PRECISION : Api_Precision : cast(Api_Precision) #config(NAVIS_API_PRECISION, Api_Precision.F32)
-
-API_PRECISION_F32 :: API_PRECISION == .F32
-API_PRECISION_F64 :: API_PRECISION == .F64
-
-Api_Precision :: enum
-{
-    F32,
-    F64,
-}
+import "navis:api"
 
 import linear_algebra "core:math/linalg"
 
@@ -41,48 +32,48 @@ Matrix4x4 :: linear_algebra.Matrix4x4f32
 Nickname for core:linalg.Vector2f32
 Not Distinct.
 */
-Vector2f32 :: linear_algebra.Vector2f32
+Vector2_F32 :: linear_algebra.Vector2f32
 
 /*
 Nickname for core:linalg.Vector2f64
 Not Distinct.
 */
-Vector2f64 :: linear_algebra.Vector2f64
+Vector2_F64 :: linear_algebra.Vector2f64
 
 /*
 Nickname for core:linalg.Vector3f32
 Not Distinct.
 */
-Vector3f32 :: linear_algebra.Vector3f32
+Vector3_F32 :: linear_algebra.Vector3f32
 
 /*
 Nickname for core:linalg.Vector3f64
 Not Distinct.
 */
-Vector3f64 :: linear_algebra.Vector3f64
+Vector3_F64 :: linear_algebra.Vector3f64
 
 /*
 Nickname for core:linalg.Vector4f32
 Not Distinct.
 */
-Vector4f32 :: linear_algebra.Vector4f32
+Vector4_F32 :: linear_algebra.Vector4f32
 
 /*
 Nickname for core:linalg.Vector4f64
 Not Distinct.
 */
-Vector4f64 :: linear_algebra.Vector4f64
+Vector4_F64 :: linear_algebra.Vector4f64
 
-when API_PRECISION_F32
+when api.PRECISION_32
 {
-    Vector2 :: Vector2f32
-    Vector3 :: Vector3f32
-    Vector4 :: Vector4f32
+    Vector2 :: Vector2_F32
+    Vector3 :: Vector3_F32
+    Vector4 :: Vector4_F32
 }
 
-when API_PRECISION_F64
+when api.PRECISION_64
 {
-    Vector2 :: Vector2f64
-    Vector3 :: Vector3f64
-    Vector4 :: Vector4f64
+    Vector2 :: Vector2_F64
+    Vector3 :: Vector3_F64
+    Vector4 :: Vector4_F64
 }
