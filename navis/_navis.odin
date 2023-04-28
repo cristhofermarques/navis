@@ -8,6 +8,7 @@ import "commons"
 
 import graphics_commons "graphics/commons"
 import "graphics/vulkan/vk"
+import "graphics/vulkan"
 import "graphics/ui"
 import "graphics"
 

@@ -12,7 +12,7 @@ when api.IMPORT
     when ODIN_OS == .Linux   do foreign import navis "binaries:navis.a"
 
     @(default_calling_convention="odin")
-    foreign nav
+    foreign navis
     {
         //Variables
         @(link_prefix=PREFIX) _vulkan_library: dynlib.Library
