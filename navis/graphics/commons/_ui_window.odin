@@ -35,9 +35,6 @@ Window_Common :: struct
     event: commons.Event(Window_Event_Callback),
 }
 
-//@(deprecated="Use Window_Descriptor")
-Window_Desc :: Window_Descriptor
-
 /*Window Descriptor*/
 Window_Descriptor :: struct
 {
@@ -49,5 +46,5 @@ Window_Descriptor :: struct
 
 ui_window_create :: proc{
     ui_window_create_separated,
-    ui_window_create_desc,
+    ui_window_create_descriptor,
 }

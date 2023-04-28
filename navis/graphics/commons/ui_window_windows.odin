@@ -70,7 +70,7 @@ Create a Native Window
     }
 
     @(export=api.SHARED, link_prefix=PREFIX)
-    ui_window_create_desc :: proc(desc: Window_Desc, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok
+    ui_window_create_descriptor :: proc(desc: Window_Descriptor, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok
     {
         return ui_window_create(desc.title, desc.width, desc.height, desc.mode, allocator, location)
     }
