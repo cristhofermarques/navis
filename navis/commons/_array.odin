@@ -31,12 +31,42 @@ dynamic_try_as_pointer :: #force_inline proc(array: $Array/[dynamic]$Type) -> (^
 }
 
 /*
-Append slice elements to dynamic slice.
+Returns true if slice contains provided element.
+* Uses '==' operator.
 */
-dynamic_append_slice :: #force_inline proc(dyn_slice: ^[dynamic]$T, slice: []T)
+slice_contains :: #force_inline proc(slice: []$T, element: T) -> bool
 {
-    if dyn_slice == nil || slice == nil do return
-    for element in slice do append(dyn_slice, element)
+    if slice == nil do return false
+    for element_ in slice do if element_ == element do return true
+    return false
+}
+
+/*
+Returns true if dynamic slice contains provided element.
+* Uses '==' operator.
+*/
+dynamic_contains :: #force_inline proc(slice: [dynamic]$T, element: T) -> bool
+{
+    if slice == nil do return false
+    for element_ in slice do if element_ == element do return true
+    return false
+}
+
+/*
+Create slice from dynamic slice, no content cloning.
+*/
+slice_from_dynamic :: proc(dynamic_slice: [dynamic]$T, allocator := context.allocator) -> ([]T, bool) #optional_ok
+{
+    if dynamic_slice == nil do return nil, false
+
+    slice_len := len(dynamic_slice)
+    if slice_len < 1 do return nil, false
+
+    slice, alloc_err := make([]T, slice_len, allocator)
+    if alloc_err != .None do return nil, false
+    
+    for element, index in dynamic_slice do slice[index] = element
+    return slice, true
 }
 
 /*
@@ -54,7 +84,21 @@ dynamic_from_slice :: proc(slice: []$T, allocator := context.allocator) -> ([dyn
     return dyn_slice, true
 }
 
+/*
+Append slice elements to dynamic slice.
+*/
+dynamic_append_slice :: #force_inline proc(dyn_slice: ^[dynamic]$T, slice: []T)
+{
+    if dyn_slice == nil || slice == nil do return
+    for element in slice do append(dyn_slice, element)
+}
+
 array_try_as_pointer :: proc{
     slice_try_as_pointer,
     dynamic_try_as_pointer,
+}
+
+array_contains :: proc{
+    slice_contains,
+    dynamic_contains,
 }

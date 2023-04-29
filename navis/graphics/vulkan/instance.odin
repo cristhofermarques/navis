@@ -126,4 +126,65 @@ when api.EXPORT
             delete(instance.enabled_layers, allocator)
         }
     }
+
+/*
+Gets instance version.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    instance_enumerate_version :: proc() -> (u32, bool) #optional_ok
+    {
+        version: u32
+        result := vk.EnumerateInstanceVersion(&version)
+        return version, result == .SUCCESS
+    }
+    
+/*
+Gets instance extension properties.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    instance_enumerate_extension_properties :: proc(layer_name: cstring, allocator := context.allocator, location := #caller_location) -> ([]vk.ExtensionProperties, bool) #optional_ok
+    {
+        result: vk.Result
+
+        extension_count: u32
+        result = vk.EnumerateInstanceExtensionProperties(layer_name, &extension_count, nil)
+        if log.verbose_fail_error(result != .SUCCESS, "enumerate instance extension properties, count querry", location) do return nil, false
+        
+        extensions, alloc_err := make([]vk.ExtensionProperties, extension_count, allocator)
+        if log.verbose_fail_error(alloc_err != .None, "make instance extension properties slice", location) do return nil, false
+        
+        result = vk.EnumerateInstanceExtensionProperties(layer_name, &extension_count, commons.array_try_as_pointer(extensions))
+        if log.verbose_fail_error(result != .SUCCESS, "enumerate instance extension properties, fill querry", location)
+        {
+            delete(extensions, allocator)
+            return nil, false
+        }
+        
+        return extensions, true
+    }
+
+/*
+Gets instance layer properties.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    instance_enumerate_layer_properties :: proc(allocator := context.allocator, location := #caller_location) -> ([]vk.LayerProperties, bool) #optional_ok
+    {
+        result: vk.Result
+
+        layer_count: u32
+        result = vk.EnumerateInstanceLayerProperties(&layer_count, nil)
+        if log.verbose_fail_error(result != .SUCCESS, "enumerate instance layer properties, count querry", location) do return nil, false
+
+        layers, alloc_err := make([]vk.LayerProperties, layer_count, allocator)
+        if log.verbose_fail_error(alloc_err != .None, "make instance layer properties slice", location) do return nil, false
+
+        result = vk.EnumerateInstanceLayerProperties(&layer_count, commons.array_try_as_pointer(layers));
+        if log.verbose_fail_error(result != .SUCCESS, "enumerate instance layer properties, fill querry", location)
+        {
+            delete(layers, allocator)
+            return nil, false
+        }
+
+        return layers, result == .SUCCESS
+    }
 }

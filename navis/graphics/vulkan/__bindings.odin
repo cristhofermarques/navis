@@ -25,6 +25,15 @@ when api.IMPORT
 
         @(link_prefix=PREFIX)
         instance_destroy :: proc(instance: ^Instance, location := #caller_location) ---
+
+        @(link_prefix=PREFIX)
+        instance_enumerate_version :: proc() -> (u32, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        instance_enumerate_extension_properties :: proc(layer_name: cstring, allocator := context.allocator, location := #caller_location) -> ([]vk.ExtensionProperties, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        instance_enumerate_layer_properties :: proc(allocator := context.allocator, location := #caller_location) -> ([]vk.LayerProperties, bool) #optional_ok ---
         
         /* Debugger */
         @(link_prefix=PREFIX)
@@ -35,5 +44,9 @@ when api.IMPORT
 
         @(link_prefix=PREFIX)
         debugger_destroy :: proc(instance: ^Instance, debugger: ^Debugger, location := #caller_location) -> bool ---
+        
+        /* Physical Device */
+        @(link_prefix=PREFIX)
+        physical_device_enumerate :: proc(instance: ^Instance, allocator := context.allocator) -> ([]vk.PhysicalDevice, bool) #optional_ok ---
     }
 }
