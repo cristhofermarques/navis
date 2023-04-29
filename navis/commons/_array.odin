@@ -30,6 +30,30 @@ dynamic_try_as_pointer :: #force_inline proc(array: $Array/[dynamic]$Type) -> (^
     else do return &array[0], true
 }
 
+/*
+Append slice elements to dynamic slice.
+*/
+dynamic_append_slice :: #force_inline proc(dyn_slice: ^[dynamic]$T, slice: []T)
+{
+    if dyn_slice == nil || slice == nil do return
+    for element in slice do append(dyn_slice, element)
+}
+
+/*
+Creates an dynamic slice from an slice.
+*/
+dynamic_from_slice :: proc(slice: []$T, allocator := context.allocator) -> ([dynamic]T, bool) #optional_ok
+{
+    if slice == nil do return nil, false
+
+    slice_len := len(slice)
+    dyn_slice, alloc_err := make_dynamic_array_len_cap([dynamic]T, 0, slice_len, allocator)
+    if alloc_err != .None do return nil, false
+
+    dynamic_append_slice(&dyn_slice, slice)
+    return dyn_slice, true
+}
+
 array_try_as_pointer :: proc{
     slice_try_as_pointer,
     dynamic_try_as_pointer,

@@ -7,13 +7,14 @@ when api.EXPORT
     import "vk"
     import "navis:commons/log"
     import "navis:commons/utility"
+    import "navis:commons"
 
     ENGINE_NAME :: "Navis"
 
     @(export=api.SHARED, link_prefix=PREFIX)
     instance_create_from_descriptor :: proc(desc: ^Instance_Descriptor, allocator := context.allocator, location := #caller_location) -> (Instance, bool) #optional_ok
     {
-        if desc == nil do return {}, false
+        if log.verbose_fail_error(desc == nil, "nil parameter, vulkan instance descriptor", location) do return {}, false
 
         //Application info
         app_info: vk.ApplicationInfo
@@ -25,13 +26,13 @@ when api.EXPORT
         app_info.apiVersion = desc.api_version
 
         //Enabled extensions
-        enabled_extensions, enabled_extensions_succ := utility.dynamic_from_slice(desc.extensions, context.temp_allocator) if desc.extensions != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
-        if log.verbose_fail_error(!enabled_extensions_succ, "create dynamic slice from enabled extensions slice") do return {}, false
+        enabled_extensions, enabled_extensions_succ := commons.dynamic_from_slice(desc.extensions, context.temp_allocator) if desc.extensions != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
+        if log.verbose_fail_error(!enabled_extensions_succ, "create dynamic slice from enabled extensions slice", location) do return {}, false
         defer delete(enabled_extensions)
 
         //Enabled layers
-        enabled_layers, enabled_layers_succ := utility.dynamic_from_slice(desc.extensions, context.temp_allocator) if desc.layers != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
-        if log.verbose_fail_error(!enabled_layers_succ, "create dynamic slice from enabled layers slice") do return {}, false
+        enabled_layers, enabled_layers_succ := commons.dynamic_from_slice(desc.extensions, context.temp_allocator) if desc.layers != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
+        if log.verbose_fail_error(!enabled_layers_succ, "create dynamic slice from enabled layers slice", location) do return {}, false
         defer delete(enabled_layers)
 
         //Adding windows extensions
@@ -48,14 +49,17 @@ when api.EXPORT
         info: vk.InstanceCreateInfo
         info.sType = .INSTANCE_CREATE_INFO
         info.pApplicationInfo = &app_info
-        info.ppEnabledExtensionNames = utility.as_mult_ptr(enabled_extensions)
-        info.enabledExtensionCount = u32(utility.may_len(enabled_extensions))
-        info.ppEnabledLayerNames = utility.as_mult_ptr(enabled_layers)
-        info.enabledLayerCount = u32(utility.may_len(enabled_layers))
+        info.ppEnabledExtensionNames = commons.array_try_as_pointer(enabled_extensions)
+        info.enabledExtensionCount = cast(u32)commons.array_try_len(enabled_extensions)
+        info.ppEnabledLayerNames = commons.array_try_as_pointer(enabled_layers)
+        info.enabledLayerCount = cast(u32)commons.array_try_len(enabled_layers)
 
+        //Creating instance
         handle: vk.Instance
         result := vk._create_instance(&info, nil, &handle)
-        if log.verbose_fail_error(result != .SUCCESS, "create vulkan instance") do return {}, false
+        if log.verbose_fail_error(result != .SUCCESS, "create vulkan instance", location) do return {}, false
+
+        //Create debugger
 
         //Cloning info
         instance_app_name := utility.cstring_clone(desc.app_name, allocator)
@@ -109,6 +113,7 @@ when api.EXPORT
         //Deleting allocated
         if instance.app_name != "" do delete(instance.app_name, allocator)
         if instance.engine_name != "" do delete(instance.engine_name, allocator)
+        
         if instance.enabled_extensions != nil
         {
             for extension in instance.enabled_extensions do delete(extension, allocator)

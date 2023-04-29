@@ -25,7 +25,15 @@ when api.IMPORT
 
         @(link_prefix=PREFIX)
         instance_destroy :: proc(instance: ^Instance, location := #caller_location) ---
+        
+        /* Debugger */
+        @(link_prefix=PREFIX)
+        debugger_default_message_callback :: proc "std" (messageSeverity: vk.DebugUtilsMessageSeverityFlagsEXT, messageTypes: vk.DebugUtilsMessageTypeFlagsEXT, pCallbackData: ^vk.DebugUtilsMessengerCallbackDataEXT, pUserData: rawptr) -> b32 ---
 
-        /* Debug */
+        @(link_prefix=PREFIX)
+        debugger_create_from_descriptor :: proc(instance: ^Instance, desc: ^Debugger_Descriptor, allocator := context.allocator, location := #caller_location) -> (Debugger, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        debugger_destroy :: proc(instance: ^Instance, debugger: ^Debugger, location := #caller_location) -> bool ---
     }
 }
