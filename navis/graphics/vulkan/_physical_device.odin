@@ -4,6 +4,36 @@ import "vk"
 import "navis:commons"
 
 /*
+TODO
+*/
+Physical_Device_Filter :: struct
+{
+    api_version: u32,
+    type_: vk.PhysicalDeviceType,
+    graphics_queue_filter: Queue_Filter,
+    transfer_queue_filter: Queue_Filter,
+    present_queue_filter: Queue_Filter,
+}
+
+/*
+Vulkan physical device.
+*/
+Physical_Device :: struct
+{
+    features: vk.PhysicalDeviceFeatures,
+    properties: vk.PhysicalDeviceProperties,
+    handle: vk.PhysicalDevice,
+}
+
+/*
+TODO
+*/
+physical_device_is_valid :: #force_inline proc(physical_device: ^Physical_Device) -> bool
+{
+    return physical_device != nil && physical_device.handle != nil
+}
+
+/*
 Return physical device features.
 */
 physical_device_get_features :: #force_inline proc(physical_device: vk.PhysicalDevice) -> vk.PhysicalDeviceFeatures

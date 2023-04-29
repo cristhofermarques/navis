@@ -11,6 +11,8 @@ Window :: commons.Window
 
 window_is_valid :: commons.ui_window_is_valid
 window_create :: commons.ui_window_create
+window_create_from_descriptor :: commons.ui_window_create_descriptor
+window_create_from_parameters :: commons.ui_window_create_separated
 window_destroy :: commons.ui_window_destroy
 window_update :: commons.ui_window_update
 window_show :: commons.ui_window_show

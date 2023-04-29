@@ -47,6 +47,20 @@ when api.IMPORT
         
         /* Physical Device */
         @(link_prefix=PREFIX)
-        physical_device_enumerate :: proc(instance: ^Instance, allocator := context.allocator) -> ([]vk.PhysicalDevice, bool) #optional_ok ---
+        physical_device_enumerate_handles :: proc(instance: ^Instance, allocator := context.allocator) -> ([]vk.PhysicalDevice, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        physical_device_enumerate :: proc(instance: ^Instance, allocator := context.allocator) -> ([]Physical_Device, bool) #optional_ok ---
+        
+        /* Surface */
+        @(link_prefix=PREFIX)
+        surface_create :: proc(instance: ^Instance, window: ^ui.Window) -> (Surface, bool) #optional_ok ---
+        
+        /* Queue */
+        @(link_prefix=PREFIX)
+        queue_support_presentation_from_index :: proc(physical_device: ^Physical_Device, index: u32, location := #caller_location) -> bool ---
+
+        @(link_prefix=PREFIX)
+        queue_enumerate_infos :: proc(physical_device: ^Physical_Device, allocator := context.allocator, location := #caller_location) -> ([]Queue_Info, bool) #optional_ok ---
     }
 }
