@@ -2,6 +2,7 @@ package vulkan
 
 import "vk"
 import "navis:commons"
+import "core:runtime"
 
 /*
 TODO
@@ -20,9 +21,63 @@ Vulkan physical device.
 */
 Physical_Device :: struct
 {
+    allocator: runtime.Allocator,
     features: vk.PhysicalDeviceFeatures,
     properties: vk.PhysicalDeviceProperties,
+    queue_infos: []Queue_Info,
     handle: vk.PhysicalDevice,
+}
+
+/*
+Clone physical device.
+*/
+physical_device_clone :: proc(physical_device: ^Physical_Device, allocator := context.allocator) -> (Physical_Device, bool)
+{
+    if physical_device == nil do return {}, false
+    
+    queue_infos_len := len(physical_device.queue_infos)
+    if queue_infos_len < 1 do return {}, false
+
+    queue_infos, queue_infos_alloc_err := make([]Queue_Info, queue_infos_len, allocator)
+    if queue_infos_alloc_err != .None do return {}, false
+    for queue_info, index in physical_device.queue_infos do queue_infos[index] = queue_info
+
+    clone := physical_device^
+    clone.allocator = allocator
+    clone.queue_infos = queue_infos
+    return clone, true
+}
+
+/*
+Delete a single physical device.
+*/
+physical_device_delete_single :: proc(physical_device: ^Physical_Device) -> bool
+{
+    if physical_device == nil do return false
+
+    allocator := physical_device.allocator
+    if physical_device.queue_infos != nil
+    {
+        delete(physical_device.queue_infos, allocator)
+        physical_device.queue_infos = nil
+    }
+
+    return true
+}
+
+/*
+Delete a physical device slice.
+*/
+physical_device_delete_slice :: proc(physical_devices: []Physical_Device) -> bool
+{
+    if physical_devices == nil do return false
+    for pd, i in physical_devices do physical_device_delete_single(&physical_devices[i])
+    return true
+}
+
+physical_device_delete :: proc{
+    physical_device_delete_single,
+    physical_device_delete_slice,
 }
 
 /*
@@ -56,7 +111,7 @@ physical_device_get_properties :: #force_inline proc(physical_device: vk.Physica
 /*
 Return physical device queue family properties
 */
-physical_device_get_queue_family_properties :: proc(physical_device: vk.PhysicalDevice, allocator := context.allocator) -> ([]vk.QueueFamilyProperties, bool) #optional_ok
+physical_device_get_queue_family_properties :: proc(physical_device: vk.PhysicalDevice, allocator := context.allocator) -> ([]vk.QueueFamilyProperties, bool)
 {
     queue_family_count: u32
     vk.GetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nil)

@@ -51,6 +51,9 @@ when api.IMPORT
 
         @(link_prefix=PREFIX)
         physical_device_enumerate :: proc(instance: ^Instance, allocator := context.allocator) -> ([]Physical_Device, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        physical_device_filter :: proc(instance: ^Instance, filter: ^Physical_Device_Filter, allocator := context.allocator, location := #caller_location) -> ([]Physical_Device, []Queues_Info, bool) ---
         
         /* Surface */
         @(link_prefix=PREFIX)
@@ -58,9 +61,12 @@ when api.IMPORT
         
         /* Queue */
         @(link_prefix=PREFIX)
-        queue_support_presentation_from_index :: proc(physical_device: ^Physical_Device, index: u32, location := #caller_location) -> bool ---
+        queue_enumerate_infos_from_handle :: proc(physical_device: vk.PhysicalDevice, allocator := context.allocator, location := #caller_location) -> ([]Queue_Info, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
         queue_enumerate_infos :: proc(physical_device: ^Physical_Device, allocator := context.allocator, location := #caller_location) -> ([]Queue_Info, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        queue_filter :: proc(physical_device: ^Physical_Device, filter: ^Queue_Filter, allocator := context.allocator, location := #caller_location) -> ([]Queue_Info, bool) #optional_ok ---
     }
 }

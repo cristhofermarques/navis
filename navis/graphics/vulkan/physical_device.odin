@@ -53,8 +53,10 @@ Return physical devices slice.
         for handle, index in handles
         {
             physical_device: Physical_Device
+            physical_device.allocator = allocator
             physical_device.features = physical_device_get_features(handle)
             physical_device.properties = physical_device_get_properties(handle)
+            physical_device.queue_infos = queue_enumerate_infos_from_handle(handle, allocator)
             physical_device.handle = handle
             physical_devices[index] = physical_device
         }
@@ -65,62 +67,90 @@ Return physical devices slice.
 /*
 Filter physical devices, first one that matches will be choosed.
 */
-    // @(export=api.SHARED, link_prefix=PREFIX)
-    // physical_device_filter :: proc(instance: ^Instance, filter: ^Physical_Device_Filter) -> (Physical_Device, bool) #optional_ok
-    // {
-    //     if log.verbose_fail_error(instance == nil, "nil vulkan instance parameter") do return nil, false
-    //     if log.verbose_fail_error(!instance_is_valid(instance), "invalid vulkan instance") do return nil, false
-    //     if log.verbose_fail_error(filter == nil, "nil physical device filter parameter") do return nil, false
+    @(export=api.SHARED, link_prefix=PREFIX)
+    physical_device_filter :: proc(instance: ^Instance, filter: ^Physical_Device_Filter, allocator := context.allocator, location := #caller_location) -> ([]Physical_Device, []Queues_Info, bool)
+    {
+        if log.verbose_fail_error(!instance_is_valid(instance), "invalid vulkan instance parameter", location) do return nil, nil, false
         
-    //     //Enumerating physical devices
-    //     physical_devices, physical_devices_succ := physical_device_enumerate(instance, context.temp_allocator)
-    //     if log.verbose_fail_error(!physical_devices_succ, "enumerate physical devices") do return nil, false
-    //     defer delete(physical_devices, context.temp_allocator)
+        //Enumerating physical devices
+        physical_devices, physical_devices_succ := physical_device_enumerate(instance, context.temp_allocator)
+        if log.verbose_fail_error(!physical_devices_succ, "enumerate physical devices", location) do return nil, nil, false
+        defer for pd, i in physical_devices do physical_device_delete(&physical_devices[i])
+        defer delete(physical_devices, context.temp_allocator)
+
+        physical_devices_len := len(physical_devices)
+
+        pd_matches, pd_matches_alloc_err := make([dynamic]Physical_Device, 0, physical_devices_len, context.temp_allocator)
+        if log.verbose_fail_error(pd_matches_alloc_err != .None, "make physical device matches dynamic slice", location) do return nil, nil, false
+        defer delete(pd_matches)
+
+        qi_matches, qi_matches_alloc_err := make([dynamic]Queues_Info, 0, physical_devices_len, context.temp_allocator)
+        if log.verbose_fail_error(qi_matches_alloc_err != .None, "make queues info matches dynamic slice", location) do return nil, nil, false
+        defer delete(qi_matches)
+
+        //Forcing queues
+        incl_elem(&filter.graphics_queue_filter.require_flags, vk.QueueFlag.GRAPHICS)
+        incl_elem(&filter.transfer_queue_filter.require_flags, vk.QueueFlag.TRANSFER)
+        filter.present_queue_filter.require_presentation = true
+
+        for physical_device, index in physical_devices
+        {
+            p_physical_device := &physical_devices[index]
+
+            //Pre sutability
+            correct_type := physical_device.properties.deviceType == filter.type_
+            support_api_version := physical_device.properties.apiVersion >= filter.api_version
+            pre_sutable := correct_type && support_api_version
+            if !pre_sutable do continue
+
+            //Queues selection
+            graphics_queue_infos, graphics_queue_infos_succ := queue_filter(p_physical_device, &filter.graphics_queue_filter, allocator)
+            if !graphics_queue_infos_succ do continue
+
+            transfer_queue_infos, transfer_queue_infos_succ := queue_filter(p_physical_device, &filter.transfer_queue_filter, allocator)
+            if !transfer_queue_infos_succ
+            {
+                delete(graphics_queue_infos, allocator)
+                continue
+            }
+
+            present_queue_infos, present_queue_infos_succ := queue_filter(p_physical_device, &filter.present_queue_filter, allocator)
+            if !present_queue_infos_succ
+            {
+                delete(transfer_queue_infos, allocator)
+                delete(graphics_queue_infos, allocator)
+                continue
+            }
+
+            queue_infos: Queues_Info
+            queue_infos.allocator = allocator
+            queue_infos.graphics = graphics_queue_infos
+            queue_infos.transfer = transfer_queue_infos
+            queue_infos.present = present_queue_infos
+
+            //Match
+            pd, pd_succ := physical_device_clone(p_physical_device, allocator)
+            if log.verbose_fail_error(!pd_succ, "clone vulkan physical device", location) do continue
+            append(&pd_matches, pd)
+            append(&qi_matches, queue_infos)
+        }
+
+        pd_matches_len := len(pd_matches)
+        qi_matches_len := len(qi_matches)
+        if log.verbose_fail_error(pd_matches_len != qi_matches_len || pd_matches_len < 1 || qi_matches_len < 1, "invalid matche dynamic slices length", location) do return nil, nil, false
         
-    //     //Creating window
-    //     window, window_succ := ui.window_create_from_parameters("", 0, 0, .Borderless, context.temp_allocator)
-    //     if log.verbose_fail_error(!window_succ, "create dummy window") do return nil, false
-    //     defer ui.window_destroy(&window)
-        
-    //     surface, surface_succ := surface_create(instance, &window)
-    //     if log.verbose_fail_error(!surface_succ, "create dummy surface") do return nil, false
-    //     defer ui.window_destroy(&window)
+        pds, pds_succ := commons.slice_from_dynamic(pd_matches, allocator)
+        if log.verbose_fail_error(!pds_succ, "making physical devices slice from dynamic slice matches", location) do return nil, nil, false
 
-    //     for physical_device, index in physical_devices
-    //     {
-    //         //Pre sutability
-    //         properties := physical_device_get_properties(physical_device)
-    //         correct_type := properties.deviceType == filter.type_
-    //         support_api_version := properties.apiVersion >= filter.api_version
-    //         pre_sutable := correct_type && support_api_version
-    //         if !pre_sutable do continue
+        qis, qis_succ := commons.slice_from_dynamic(qi_matches, allocator)
+        if log.verbose_fail_error(!qis_succ, "making queue infos slice from dynamic slice matches", location)
+        {
+            for pd, i in pds do physical_device_delete(&pds[i])
+            delete(pds, allocator)
+            return nil, nil, false
+        }
 
-    //         physical_device: Physical_Device
-    //         physical_device.handle = vk_physical_device
-    //         physical_device.api_version = filter.api_version
-    //         physical_device._type = filter.physical_device_type
-            
-    //         physical_device.queues.graphics.index = INVALID_QUEUE_FAMILY_INDEX
-    //         physical_device.queues.transfer.index = INVALID_QUEUE_FAMILY_INDEX
-    //         physical_device.queues.present.index = INVALID_QUEUE_FAMILY_INDEX
-            
-    //         //Queues selection
-    //         physical_device.queues.graphics, success = get_filter_queue_family_indices_first(vk_physical_device, surface, &filter.queues.graphics)
-    //         if !success do continue
-
-    //         physical_device.queues.transfer, success = get_filter_queue_family_indices_first(vk_physical_device, surface, &filter.queues.transfer)
-    //         if !success do continue
-
-    //         physical_device.queues.present, success = get_filter_queue_family_indices_first(vk_physical_device, surface, &filter.queues.present)
-    //         if !success do continue
-
-    //         //Queues relation
-    //         physical_device.queues.graphics_transfer = queues_graphics_transfer(&physical_device.queues)
-    //         physical_device.queues.graphics_present = queues_graphics_present(&physical_device.queues)
-
-    //         return physical_device, true
-    //     }
-
-    //     return {}, false
-    // }
+        //Success
+        return pds, qis, true
+    }
 }
