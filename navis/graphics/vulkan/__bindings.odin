@@ -68,6 +68,9 @@ when api.IMPORT
         
         @(link_prefix=PREFIX)
         queue_filter :: proc(physical_device: ^Physical_Device, filter: ^Queue_Filter, allocator := context.allocator, location := #caller_location) -> ([]Queue_Info, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        queue_enumerate_from_handle :: proc(device: vk.Device, queue_desc: ^Queue_Descriptor, allocator := context.allocator, location := #caller_location) -> ([]Queue, bool) #optional_ok ---
         
         /* Device */
         @(link_prefix=PREFIX)

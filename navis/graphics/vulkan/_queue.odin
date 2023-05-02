@@ -1,10 +1,11 @@
 package vulkan
 
 import "vk"
+import "navis:commons/log"
 import "core:runtime"
 
 /*
-TODO
+Vulkan queue filter
 */
 Queue_Filter :: struct
 {
@@ -15,7 +16,9 @@ Queue_Filter :: struct
 }
 
 /*
-TODO
+Vulkan queue info.
+
+Basic info of physical device queue family.
 */
 Queue_Info :: struct
 {
@@ -25,7 +28,9 @@ Queue_Info :: struct
 }
 
 /*
-TODO
+Vulkan queues info.
+
+Additional info from physical device filtering.
 */
 Queues_Info :: struct
 {
@@ -34,7 +39,7 @@ Queues_Info :: struct
 }
 
 /*
-TODO
+Vulkan queue descriptor.
 */
 Queue_Descriptor :: struct
 {
@@ -43,7 +48,7 @@ Queue_Descriptor :: struct
 }
 
 /*
-TODO
+Vulkan queue.
 */
 Queue :: struct
 {
@@ -94,27 +99,4 @@ queues_info_delete_slice :: #force_inline proc(queues_infos: []Queues_Info, loca
 queues_info_delete :: proc{
     queues_info_delete_single,
     queues_info_delete_slice,
-}
-
-when ODIN_OS == .Windows
-{
-    import "navis:commons/log"
-
-/*
-TODO
-*/
-    queue_support_presentation_from_handle :: #force_inline proc(physical_device: vk.PhysicalDevice, index: u32, location := #caller_location) -> bool
-    {
-        if log.verbose_fail_error(physical_device == nil, "invalid vulkan physical device handle parameter", location) do return false
-        return cast(bool)vk.GetPhysicalDeviceWin32PresentationSupportKHR(physical_device, index)
-    }
-
-/*
-TODO
-*/
-    queue_support_presentation :: #force_inline proc(physical_device: ^Physical_Device, index: u32, location := #caller_location) -> bool
-    {
-        if log.verbose_fail_error(!physical_device_is_valid(physical_device), "invalid vulkan physical device parameter", location) do return false
-        return cast(bool)vk.GetPhysicalDeviceWin32PresentationSupportKHR(physical_device.handle, index)
-    }
 }

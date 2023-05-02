@@ -78,50 +78,27 @@ when api.EXPORT
         if log.verbose_fail_error(result != .SUCCESS, "create vulkan device", location) do return {}, false
 
         //Getting graphics queues
-        graphics_queues_len := len(desc.graphics_queue.priorities)
-        graphics_queues, graphics_queues_alloc_err := make([]Queue, graphics_queues_len, allocator)
-        if log.verbose_fail_error(graphics_queues_alloc_err != .None, "make graphics queue slice", location)
+        graphics_queues: []Queue
         {
-            vk.DestroyDevice(handle, nil)
-            return {}, false
-        }
-
-        for gq, i in graphics_queues
-        {
-            queue: Queue
-            queue.index = desc.graphics_queue.index
-            queue.priority = desc.graphics_queue.priorities[i]
-
-            queue_handle: vk.Queue
-            vk.GetDeviceQueue(handle, cast(u32)desc.graphics_queue.index, cast(u32)i, &queue_handle)
-            queue.handle = queue_handle
-            graphics_queues[i] = queue
+            success: bool
+            graphics_queues, success = queue_enumerate_from_handle(handle, &desc.graphics_queue, allocator)
+            if log.verbose_fail_error(!success, "enumerate vulkan device graphics queues", location)
+            {
+                vk.DestroyDevice(handle, nil)
+                return {}, false
+            }
         }
 
         //Getting transfer queues
         transfer_queues: []Queue
         if !graphics_do_transfer
         {
-            transfer_queues_len := len(desc.transfer_queue.priorities)
-            transfer_queues_alloc_err: runtime.Allocator_Error
-            transfer_queues, transfer_queues_alloc_err = make([]Queue, transfer_queues_len, allocator)
-            if log.verbose_fail_error(transfer_queues_alloc_err != .None, "make transfer queue slice", location)
+            success: bool
+            transfer_queues, success = queue_enumerate_from_handle(handle, &desc.transfer_queue, allocator)
+            if log.verbose_fail_error(!success, "enumerate vulkan device transfer queues", location)
             {
-                delete(graphics_queues, allocator)
                 vk.DestroyDevice(handle, nil)
                 return {}, false
-            }
-
-            for tq, i in transfer_queues
-            {
-                queue: Queue
-                queue.index = desc.transfer_queue.index
-                queue.priority = desc.transfer_queue.priorities[i]
-
-                queue_handle: vk.Queue
-                vk.GetDeviceQueue(handle, cast(u32)desc.transfer_queue.index, cast(u32)i, &queue_handle)
-                queue.handle = queue_handle
-                transfer_queues[i] = queue
             }
         }
 
@@ -129,27 +106,12 @@ when api.EXPORT
         present_queues: []Queue
         if !graphics_do_present && !transfer_do_present
         {
-            present_queues_len := len(desc.present_queue.priorities)
-            present_queues_alloc_err: runtime.Allocator_Error
-            present_queues, present_queues_alloc_err = make([]Queue, present_queues_len, allocator)
-            if log.verbose_fail_error(present_queues_alloc_err != .None, "make present queue slice", location)
+            success: bool
+            present_queues, success = queue_enumerate_from_handle(handle, &desc.present_queue, allocator)
+            if log.verbose_fail_error(!success, "enumerate vulkan device present queues", location)
             {
-                if transfer_queues != nil do delete(transfer_queues, allocator)
-                delete(graphics_queues, allocator)
                 vk.DestroyDevice(handle, nil)
                 return {}, false
-            }
-
-            for pq, i in present_queues
-            {
-                queue: Queue
-                queue.index = desc.present_queue.index
-                queue.priority = desc.present_queue.priorities[i]
-
-                queue_handle: vk.Queue
-                vk.GetDeviceQueue(handle, cast(u32)desc.present_queue.index, cast(u32)i, &queue_handle)
-                queue.handle = queue_handle
-                present_queues[i] = queue
             }
         }
 

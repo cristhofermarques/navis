@@ -110,4 +110,37 @@ TODO
 
         return commons.slice_from_dynamic(matches, allocator)
     }
+
+/*
+Enumerate queues of vulkan device handle.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    queue_enumerate_from_handle :: proc(device: vk.Device, queue_desc: ^Queue_Descriptor, allocator := context.allocator, location := #caller_location) -> ([]Queue, bool) #optional_ok
+    {
+        if log.verbose_fail_error(device == nil, "invalid vulkan device handle parameter", location) do return nil, false
+        if log.verbose_fail_error(queue_desc == nil, "invalid queue descriptor parameter", location) do return nil, false
+        if log.verbose_fail_error(queue_desc.index < 0, "invalid queue descriptor index", location) do return nil, false
+        if log.verbose_fail_error(queue_desc.priorities == nil, "invalid queue descriptor priorities", location) do return nil, false
+        
+        priorities_len := len(queue_desc.priorities)
+        if log.verbose_fail_error(priorities_len < 1, "invalid priorities length", location) do return nil, false
+
+        queues, queues_alloc_err := make([]Queue, priorities_len, allocator)
+        if log.verbose_fail_error(queues_alloc_err != .None, "make queues slice", location) do return nil, false
+
+        for i := 0; i < priorities_len; i += 1
+        {
+            queue: Queue
+            queue.index = queue_desc.index
+            queue.priority = queue_desc.priorities[i]
+
+            queue_handle: vk.Queue
+            vk.GetDeviceQueue(device, cast(u32)queue_desc.index, cast(u32)i, &queue_handle)
+            queue.handle = queue_handle
+
+            queues[i] = queue
+        }
+
+        return queues, true
+    }
 }
