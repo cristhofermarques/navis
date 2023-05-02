@@ -34,6 +34,25 @@ Queues_Info :: struct
 }
 
 /*
+TODO
+*/
+Queue_Descriptor :: struct
+{
+    index: i32,
+    priorities: []f32,
+}
+
+/*
+TODO
+*/
+Queue :: struct
+{
+    index: i32,
+    priority: f32,
+    handle: vk.Queue,
+}
+
+/*
 Delete a single queues info.
 */
 queues_info_delete_single :: #force_inline proc(queues_info: ^Queues_Info, location := #caller_location) -> bool

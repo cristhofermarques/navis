@@ -62,11 +62,18 @@ when api.IMPORT
         /* Queue */
         @(link_prefix=PREFIX)
         queue_enumerate_infos_from_handle :: proc(physical_device: vk.PhysicalDevice, allocator := context.allocator, location := #caller_location) -> ([]Queue_Info, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         queue_enumerate_infos :: proc(physical_device: ^Physical_Device, allocator := context.allocator, location := #caller_location) -> ([]Queue_Info, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
         queue_filter :: proc(physical_device: ^Physical_Device, filter: ^Queue_Filter, allocator := context.allocator, location := #caller_location) -> ([]Queue_Info, bool) #optional_ok ---
+        
+        /* Device */
+        @(link_prefix=PREFIX)
+        device_create_from_desc :: proc(physical_device: ^Physical_Device, desc: ^Device_Descriptor, allocator := context.allocator, location := #caller_location) -> (Device, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        device_destroy :: proc(device: ^Device, location := #caller_location) -> bool ---
     }
 }
