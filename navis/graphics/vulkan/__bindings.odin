@@ -57,7 +57,10 @@ when api.IMPORT
         
         /* Surface */
         @(link_prefix=PREFIX)
-        surface_create :: proc(instance: ^Instance, window: ^ui.Window) -> (Surface, bool) #optional_ok ---
+        surface_create :: proc(instance: ^Instance, physical_device: ^Physical_Device, window: ^ui.Window, allocator := context.allocator, location := #caller_location) -> (Surface, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        surface_destroy :: proc(instance: ^Instance, surface: ^Surface) -> bool ---
         
         /* Queue */
         @(link_prefix=PREFIX)

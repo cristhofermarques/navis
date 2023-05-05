@@ -62,6 +62,9 @@ when api.EXPORT
         enabled_extensions, enabled_extensions_succ := commons.dynamic_from_slice(desc.extensions, context.temp_allocator) if desc.extensions != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
         if log.verbose_fail_error(!enabled_extensions_succ, "create dynamic slice from enabled extensions slice", location) do return {}, false
         defer delete(enabled_extensions)
+
+        //Add swapchain extension
+        //append(&enabled_extensions, vk.KHR_SWAPCHAIN_EXTENSION_NAME)
         
         //Making create info
         info: vk.DeviceCreateInfo

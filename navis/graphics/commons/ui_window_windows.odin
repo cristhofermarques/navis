@@ -50,8 +50,8 @@ Create a Native Window
                 wndstyle = windows.WS_POPUP
         }
         
-        title_cstr := strings.clone_to_cstring(title, context.allocator)
-        defer delete(title_cstr, context.allocator)
+        title_cstr := strings.clone_to_cstring(title, allocator)
+        defer delete(title_cstr, allocator)
 
         log.verbose_debug("Creating Window", " ", location)
         title_u16 := transmute([^]u16)title_cstr
