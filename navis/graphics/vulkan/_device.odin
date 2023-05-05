@@ -23,6 +23,7 @@ Device :: struct
     features: vk.PhysicalDeviceFeatures,
     extensions: []cstring,
     graphics_queues, transfer_queues, present_queues: []Queue,
+    graphics_do_transfer, graphics_do_present, transfer_do_present: bool,
     handle: vk.Device,
 }
 

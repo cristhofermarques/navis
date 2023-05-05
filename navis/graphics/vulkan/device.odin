@@ -64,7 +64,7 @@ when api.EXPORT
         defer delete(enabled_extensions)
 
         //Add swapchain extension
-        //append(&enabled_extensions, vk.KHR_SWAPCHAIN_EXTENSION_NAME)
+        append(&enabled_extensions, vk.KHR_SWAPCHAIN_EXTENSION_NAME)
         
         //Making create info
         info: vk.DeviceCreateInfo
@@ -130,6 +130,9 @@ when api.EXPORT
         device.graphics_queues = graphics_queues
         device.transfer_queues = transfer_queues
         device.present_queues = present_queues
+        device.graphics_do_transfer = graphics_do_transfer
+        device.graphics_do_present = graphics_do_present
+        device.transfer_do_present = transfer_do_present
         device.handle = handle
         return device, true
     }

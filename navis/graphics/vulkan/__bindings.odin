@@ -58,9 +58,15 @@ when api.IMPORT
         /* Surface */
         @(link_prefix=PREFIX)
         surface_create :: proc(instance: ^Instance, physical_device: ^Physical_Device, window: ^ui.Window, allocator := context.allocator, location := #caller_location) -> (Surface, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         surface_destroy :: proc(instance: ^Instance, surface: ^Surface) -> bool ---
+
+        @(link_prefix=PREFIX)
+        surface_enumerate_formats_from_handle :: proc(physical_device: ^Physical_Device, surface: vk.SurfaceKHR, allocator := context.allocator) -> ([]vk.SurfaceFormatKHR, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        surface_enumerate_present_modes_from_handle :: proc(physical_device: ^Physical_Device, surface: vk.SurfaceKHR, allocator := context.allocator) -> ([]vk.PresentModeKHR, bool) #optional_ok ---
         
         /* Queue */
         @(link_prefix=PREFIX)
@@ -78,8 +84,15 @@ when api.IMPORT
         /* Device */
         @(link_prefix=PREFIX)
         device_create_from_desc :: proc(physical_device: ^Physical_Device, desc: ^Device_Descriptor, allocator := context.allocator, location := #caller_location) -> (Device, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         device_destroy :: proc(device: ^Device, location := #caller_location) -> bool ---
+        
+        /* Swapchain */
+        @(link_prefix=PREFIX)
+        swapchain_create_from_descriptor :: proc(device: ^Device, surface: ^Surface, desc: ^Swapchain_Descriptor, location := #caller_location) -> (Swapchain, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        swapchain_destroy :: proc(device: ^Device, swapchain: ^Swapchain, location := #caller_location) -> bool ---
     }
 }

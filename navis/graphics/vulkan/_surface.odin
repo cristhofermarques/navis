@@ -26,6 +26,42 @@ surface_is_valid :: #force_inline proc(surface: ^Surface) -> bool
 }
 
 /*
+Check if surface support image count.
+*/
+surface_support_image_count :: #force_inline proc(surface: ^Surface, image_count: i32) -> bool
+{
+    if log.verbose_fail_error(!surface_is_valid(surface), "invalid vulkan surface parameter") do return false
+    u_image_count := u32(image_count)
+    return u_image_count >= surface.capabilities.minImageCount && u_image_count <= surface.capabilities.maxImageCount
+}
+
+/*
+Check if surface support format.
+*/
+surface_support_image_format :: #force_inline proc(surface: ^Surface, format: vk.SurfaceFormatKHR, check_format := true, check_colorspace := false) -> bool
+{
+    if log.verbose_fail_error(!surface_is_valid(surface), "invalid vulkan surface parameter") do return false
+    for format in surface.formats
+    {
+        pass_format := check_format ? format.format == format.format: true
+        pass_colorspace := check_colorspace ? format.colorSpace == format.colorSpace: true
+        match := pass_format && pass_colorspace
+        if match do return true
+    }
+
+    return false
+}
+
+/*
+Check if surface support present mode.
+*/
+surface_support_present_mode :: #force_inline proc(surface: ^Surface, present_mode: vk.PresentModeKHR) -> bool
+{
+    if log.verbose_fail_error(!surface_is_valid(surface), "invalid vulkan surface parameter") do return false
+    return commons.array_contains(surface.present_modes, present_mode)
+}
+
+/*
 TODO
 */
 surface_get_capabilities_from_handle :: proc(physical_device: ^Physical_Device, surface: vk.SurfaceKHR) -> (vk.SurfaceCapabilitiesKHR, bool) #optional_ok
@@ -36,56 +72,4 @@ surface_get_capabilities_from_handle :: proc(physical_device: ^Physical_Device, 
     capabilities: vk.SurfaceCapabilitiesKHR
     vk.GetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device.handle, surface, &capabilities)
     return capabilities, true
-}
-
-/*
-TODO
-*/
-surface_enumerate_formats_from_handle :: proc(physical_device: ^Physical_Device, surface: vk.SurfaceKHR, allocator := context.allocator) -> ([]vk.SurfaceFormatKHR, bool) #optional_ok
-{
-    if log.verbose_fail_error(!physical_device_is_valid(physical_device), "invalid vulkan physical device parameter") do return nil, false
-    if log.verbose_fail_error(surface == 0, "invalid vulkan handle surface parameter") do return nil, false
-    
-    result: vk.Result
-    formats_count: u32
-    result = vk.GetPhysicalDeviceSurfaceFormatsKHR(physical_device.handle, surface, &formats_count, nil)
-    if log.verbose_fail_error(result != .SUCCESS, "enumerate vulkan physical device surface formats slice, count querry") do return nil, false
-    
-    formats, formats_alloc_err := make([]vk.SurfaceFormatKHR, formats_count, allocator)
-    if log.verbose_fail_error(formats_alloc_err != .None, "make vulkan physical device surface formats slice") do return nil, false
-
-    result = vk.GetPhysicalDeviceSurfaceFormatsKHR(physical_device.handle, surface, &formats_count, commons.array_try_as_pointer(formats))
-    if log.verbose_fail_error(result != .SUCCESS, "enumerate vulkan physical device surface formats slice, fill querry")
-    {
-        delete(formats, allocator)
-        return nil, false
-    }
-
-    return formats, true
-}
-
-/*
-TODO
-*/
-surface_enumerate_present_modes_from_handle :: proc(physical_device: ^Physical_Device, surface: vk.SurfaceKHR, allocator := context.allocator) -> ([]vk.PresentModeKHR, bool) #optional_ok
-{
-    if log.verbose_fail_error(!physical_device_is_valid(physical_device), "invalid vulkan physical device parameter") do return nil, false
-    if log.verbose_fail_error(surface == 0, "invalid vulkan handle surface parameter") do return nil, false
-    
-    result: vk.Result
-    present_modes_count: u32
-    result = vk.GetPhysicalDeviceSurfacePresentModesKHR(physical_device.handle, surface, &present_modes_count, nil)
-    if log.verbose_fail_error(result != .SUCCESS, "enumerate vulkan physical device surface present modes slice, count querry") do return nil, false
-    
-    present_modes, present_modes_alloc_err := make([]vk.PresentModeKHR, present_modes_count, allocator)
-    if log.verbose_fail_error(present_modes_alloc_err != .None, "make vulkan physical device surface present modes slice") do return nil, false
-
-    result = vk.GetPhysicalDeviceSurfacePresentModesKHR(physical_device.handle, surface, &present_modes_count, commons.array_try_as_pointer(present_modes))
-    if log.verbose_fail_error(result != .SUCCESS, "enumerate vulkan physical device surface present modes slice, fill querry")
-    {
-        delete(present_modes, allocator)
-        return nil, false
-    }
-
-    return present_modes, true
 }
