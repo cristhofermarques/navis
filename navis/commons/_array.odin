@@ -93,6 +93,23 @@ dynamic_append_slice :: #force_inline proc(dyn_slice: ^[dynamic]$T, slice: []T)
     for element in slice do append(dyn_slice, element)
 }
 
+/*
+Append slice elements to dynamic slice.
+*/
+slice_clone :: #force_inline proc(slice: []$T, allocator := context.allocator) -> ([]T, bool) #optional_ok
+{
+    if slice == nil do return nil, false
+
+    slice_len := len(slice)
+    if slice_len < 1 do return nil, false
+
+    clone, alloc_err := make([]T, slice_len, allocator)
+    if alloc_err != .None do return nil, false
+
+    for e, i in slice do clone[i] = e
+    return clone, true
+}
+
 array_try_as_pointer :: proc{
     slice_try_as_pointer,
     dynamic_try_as_pointer,
@@ -101,4 +118,8 @@ array_try_as_pointer :: proc{
 array_contains :: proc{
     slice_contains,
     dynamic_contains,
+}
+
+array_clone :: proc{
+    slice_clone,
 }

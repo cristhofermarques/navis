@@ -54,6 +54,9 @@ when api.IMPORT
 
         @(link_prefix=PREFIX)
         physical_device_filter :: proc(instance: ^Instance, filter: ^Physical_Device_Filter, allocator := context.allocator, location := #caller_location) -> ([]Physical_Device, []Queues_Info, bool) ---
+
+        @(link_prefix=PREFIX)
+        physical_device_filter_first :: proc(instance: ^Instance, filter: ^Physical_Device_Filter, allocator := context.allocator, location := #caller_location) -> (Physical_Device, Queues_Info, bool) ---
         
         /* Surface */
         @(link_prefix=PREFIX)
@@ -83,7 +86,7 @@ when api.IMPORT
         
         /* Device */
         @(link_prefix=PREFIX)
-        device_create_from_desc :: proc(physical_device: ^Physical_Device, desc: ^Device_Descriptor, allocator := context.allocator, location := #caller_location) -> (Device, bool) #optional_ok ---
+        device_create_from_descriptor :: proc(physical_device: ^Physical_Device, desc: ^Device_Descriptor, allocator := context.allocator, location := #caller_location) -> (Device, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
         device_destroy :: proc(device: ^Device, location := #caller_location) -> bool ---
@@ -91,8 +94,15 @@ when api.IMPORT
         /* Swapchain */
         @(link_prefix=PREFIX)
         swapchain_create_from_descriptor :: proc(device: ^Device, surface: ^Surface, desc: ^Swapchain_Descriptor, location := #caller_location) -> (Swapchain, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         swapchain_destroy :: proc(device: ^Device, swapchain: ^Swapchain, location := #caller_location) -> bool ---
+        
+        /* Context */
+        @(link_prefix=PREFIX)
+        context_create_from_descriptor :: proc(desc: ^Context_Descriptor, allocator := context.allocator, location := #caller_location) -> (Context, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        context_destroy :: proc(context_: ^Context, location := #caller_location) -> bool ---
     }
 }

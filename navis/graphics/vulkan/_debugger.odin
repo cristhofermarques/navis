@@ -16,3 +16,7 @@ Debugger :: struct
     message_callback: vk.ProcDebugReportCallbackEXT,
     messenger: vk.DebugUtilsMessengerEXT,
 }
+
+debugger_create :: proc{
+    debugger_create_from_descriptor,
+}

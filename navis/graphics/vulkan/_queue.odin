@@ -1,6 +1,7 @@
 package vulkan
 
 import "vk"
+import "navis:commons"
 import "navis:commons/log"
 import "core:runtime"
 
@@ -55,6 +56,21 @@ Queue :: struct
     index: i32,
     priority: f32,
     handle: vk.Queue,
+}
+
+/*
+Clone a queues info.
+*/
+queues_info_clone :: #force_inline proc(queues_info: ^Queues_Info, allocator := context.allocator, location := #caller_location) -> (Queues_Info, bool) #optional_ok
+{
+    if log.verbose_fail_error(queues_info == nil, "invalid queues info parameter", location) do return {}, false
+
+    clone: Queues_Info
+    clone.allocator = allocator
+    if queues_info.graphics != nil do clone.graphics = commons.array_clone(queues_info.graphics, allocator)
+    if queues_info.transfer != nil do clone.transfer = commons.array_clone(queues_info.transfer, allocator)
+    if queues_info.present != nil do clone.present = commons.array_clone(queues_info.present, allocator)
+    return clone, true
 }
 
 /*

@@ -31,7 +31,7 @@ Physical_Device :: struct
 /*
 Clone physical device.
 */
-physical_device_clone :: proc(physical_device: ^Physical_Device, allocator := context.allocator) -> (Physical_Device, bool)
+physical_device_clone :: proc(physical_device: ^Physical_Device, allocator := context.allocator) -> (Physical_Device, bool) #optional_ok
 {
     if physical_device == nil do return {}, false
     

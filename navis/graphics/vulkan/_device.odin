@@ -27,6 +27,10 @@ Device :: struct
     handle: vk.Device,
 }
 
+device_create :: proc{
+    device_create_from_descriptor,
+}
+
 /*
 Checks if device handle is valid.
 */

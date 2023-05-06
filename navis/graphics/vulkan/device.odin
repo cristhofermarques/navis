@@ -10,7 +10,7 @@ when api.EXPORT
     import "core:runtime"
 
     @(export=api.SHARED, link_prefix=PREFIX)
-    device_create_from_desc :: proc(physical_device: ^Physical_Device, desc: ^Device_Descriptor, allocator := context.allocator, location := #caller_location) -> (Device, bool) #optional_ok
+    device_create_from_descriptor :: proc(physical_device: ^Physical_Device, desc: ^Device_Descriptor, allocator := context.allocator, location := #caller_location) -> (Device, bool) #optional_ok
     {
         graphics_do_transfer := desc.graphics_queue.index == desc.transfer_queue.index
         graphics_do_present := desc.graphics_queue.index == desc.present_queue.index

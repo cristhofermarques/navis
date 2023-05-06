@@ -153,4 +153,30 @@ Filter physical devices, first one that matches will be choosed.
         //Success
         return pds, qis, true
     }
+
+/*
+Filter physical devices, first one that matches will be choosed.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    physical_device_filter_first :: proc(instance: ^Instance, filter: ^Physical_Device_Filter, allocator := context.allocator, location := #caller_location) -> (Physical_Device, Queues_Info, bool)
+    {
+        physical_devices, queues_infos, success :=  physical_device_filter(instance, filter, allocator, location)
+        if !success do return {}, {}, false
+        defer delete(physical_devices, allocator)
+        defer physical_device_delete(physical_devices)
+        defer delete(queues_infos, allocator)
+        defer queues_info_delete(queues_infos)
+
+        physical_device, physical_device_succ := physical_device_clone(&physical_devices[0], allocator)
+        if !physical_device_succ do return {}, {}, false
+        
+        queues_info, queues_info_succ := queues_info_clone(&queues_infos[0], allocator, location)
+        if !queues_info_succ
+        {
+            physical_device_delete(&physical_device)
+            return {}, {}, false
+        }
+
+        return physical_device, queues_info, true
+    }
 }
