@@ -101,12 +101,19 @@ when api.IMPORT
         /* Command Pool */
         @(link_prefix=PREFIX)
         command_pool_create_from_descriptor :: proc(device: ^Device, desc: ^Command_Pool_Descriptor, location := #caller_location) -> (Command_Pool, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         command_pool_create_from_parameters :: proc(device: ^Device, flags: vk.CommandPoolCreateFlags, index: i32, location := #caller_location) -> (Command_Pool, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
         command_pool_destroy :: proc(device: ^Device, command_pool: ^Command_Pool, location := #caller_location) -> bool ---
+        
+        /* Fence */
+        @(link_prefix=PREFIX)
+        fence_create_from_descriptor :: proc(device: ^Device, desc: ^Fence_Descriptor, location := #caller_location) -> (Fence, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        fence_destroy :: proc(device: ^Device, fence: ^Fence, location := #caller_location) -> bool ---
         
         /* Context */
         @(link_prefix=PREFIX)
