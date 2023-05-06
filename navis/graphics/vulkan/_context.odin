@@ -20,13 +20,17 @@ Context :: struct
     device: Device,
 }
 
-Target :: struct
-{
-    allocator: runtime.Allocator,
-    surface: Surface,
-    swapchain: Swapchain,
-}
-
 context_create :: proc{
     context_create_from_descriptor,
+}
+
+/*
+Checks if vulkan context is valid.
+*/
+context_is_valid :: #force_inline proc(context_: ^Context) -> bool
+{
+    return context_ != nil &&
+    instance_is_valid(&context_.instance) &&
+    physical_device_is_valid(&context_.physical_device) &&
+    device_is_valid(&context_.device)
 }

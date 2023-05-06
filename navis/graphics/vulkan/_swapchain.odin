@@ -38,6 +38,10 @@ Swapchain :: struct
     handle: vk.SwapchainKHR, 
 }
 
+swapchain_create :: proc{
+    swapchain_create_from_descriptor,
+}
+
 /*
 Checks if swapchain handle is valid.
 */

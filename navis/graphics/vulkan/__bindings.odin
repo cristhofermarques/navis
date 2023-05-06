@@ -98,11 +98,28 @@ when api.IMPORT
         @(link_prefix=PREFIX)
         swapchain_destroy :: proc(device: ^Device, swapchain: ^Swapchain, location := #caller_location) -> bool ---
         
+        /* Command Pool */
+        @(link_prefix=PREFIX)
+        command_pool_create_from_descriptor :: proc(device: ^Device, desc: ^Command_Pool_Descriptor, location := #caller_location) -> (Command_Pool, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        command_pool_create_from_parameters :: proc(device: ^Device, flags: vk.CommandPoolCreateFlags, index: i32, location := #caller_location) -> (Command_Pool, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        command_pool_destroy :: proc(device: ^Device, command_pool: ^Command_Pool, location := #caller_location) -> bool ---
+        
         /* Context */
         @(link_prefix=PREFIX)
         context_create_from_descriptor :: proc(desc: ^Context_Descriptor, allocator := context.allocator, location := #caller_location) -> (Context, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         context_destroy :: proc(context_: ^Context, location := #caller_location) -> bool ---
+        
+        /* Target */
+        @(link_prefix=PREFIX)
+        target_create_from_descriptor :: proc(context_: ^Context, desc: ^Target_Descriptor, allocator := context.allocator, location := #caller_location) -> (Target, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        target_destroy :: proc(context_: ^Context, target: ^Target, location := #caller_location) -> bool ---
     }
 }
