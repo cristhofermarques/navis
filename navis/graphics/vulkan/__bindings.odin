@@ -115,6 +115,13 @@ when api.IMPORT
         @(link_prefix=PREFIX)
         fence_destroy :: proc(device: ^Device, fence: ^Fence, location := #caller_location) -> bool ---
         
+        /* Pipeline Layout */
+        @(link_prefix=PREFIX)
+        pipeline_layout_create_from_descriptor :: proc(device: ^Device, desc: ^Layout_State_Descriptor, location := #caller_location) -> (Pipeline_Layout, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        pipeline_layout_destroy :: proc(device: ^Device, pipeline_layout: ^Pipeline_Layout, location := #caller_location) -> bool ---
+
         /* Context */
         @(link_prefix=PREFIX)
         context_create_from_descriptor :: proc(desc: ^Context_Descriptor, allocator := context.allocator, location := #caller_location) -> (Context, bool) #optional_ok ---
