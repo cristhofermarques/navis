@@ -41,6 +41,9 @@ set build_command=%build_command% %odin_build_target%
 set build_command=%build_command% %odin_build_mode%
 set build_command=%build_command% -define:NAVIS_API_SHARED=true
 set build_command=%build_command% -define:NAVIS_API_EXPORT=true
+set build_command=%build_command% -define:NAVIS_API_VERSION_MAJOR=23
+set build_command=%build_command% -define:NAVIS_API_VERSION_MINOR=5
+set build_command=%build_command% -define:NAVIS_API_VERSION_PATCH=0
 set build_command=%build_command% -collection:navis=navis
 set build_command=%build_command% -collection:binaries=%build_path%
 set build_command=%build_command% -out:%library_path%

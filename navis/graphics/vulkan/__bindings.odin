@@ -93,6 +93,9 @@ when api.IMPORT
         
         /* Swapchain */
         @(link_prefix=PREFIX)
+        swapchain_enumerate_images_from_handle :: proc(device: ^Device, swapchain: vk.SwapchainKHR, allocator := context.allocator, location := #caller_location) -> ([]vk.Image, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
         swapchain_create_from_descriptor :: proc(device: ^Device, surface: ^Surface, desc: ^Swapchain_Descriptor, location := #caller_location) -> (Swapchain, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
@@ -118,10 +121,34 @@ when api.IMPORT
         /* Pipeline Layout */
         @(link_prefix=PREFIX)
         pipeline_layout_create_from_descriptor :: proc(device: ^Device, desc: ^Layout_State_Descriptor, location := #caller_location) -> (Pipeline_Layout, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         pipeline_layout_destroy :: proc(device: ^Device, pipeline_layout: ^Pipeline_Layout, location := #caller_location) -> bool ---
+        
+        /* Render Pass */
+        @(link_prefix=PREFIX)
+        render_pass_create_from_descriptor :: proc(device: ^Device, desc: ^Render_Pass_Descriptor, location := #caller_location) -> (Render_Pass, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        render_pass_destroy :: proc(device: ^Device, render_pass: ^Render_Pass, location := #caller_location) -> bool ---
+        
+        /* Image View */
+        @(link_prefix=PREFIX)
+        image_view_create_from_descriptor :: proc(device: ^Device, desc: Image_View_Descriptor, location := #caller_location) -> (Image_View, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        image_view_create_multiple_from_descriptor :: proc(device: ^Device, desc: ^Image_View_Descriptor, images: []vk.Image, allocator := context.allocator, location := #caller_location) -> ([]Image_View, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        image_view_destroy :: proc(device: ^Device, image_view: ^Image_View, location := #caller_location) -> bool ---
+        
+        /* Image View */
+        @(link_prefix=PREFIX)
+        framebuffer_create_from_descriptor :: proc(device: ^Device, render_pass: ^Render_Pass, desc: ^Framebuffer_Descriptor, image_views: []Image_View, allocator := context.allocator, location := #caller_location) -> (Framebuffer, bool) #optional_ok ---
 
+        @(link_prefix=PREFIX)
+        framebuffer_destroy :: proc(device: ^Device, framebuffer: ^Framebuffer, location := #caller_location) -> bool ---
+        
         /* Context */
         @(link_prefix=PREFIX)
         context_create_from_descriptor :: proc(desc: ^Context_Descriptor, allocator := context.allocator, location := #caller_location) -> (Context, bool) #optional_ok ---

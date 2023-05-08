@@ -5,7 +5,31 @@ import "navis:api"
 when api.EXPORT
 {
     import "vk"
+    import "navis:commons"
     import "navis:commons/log"
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    swapchain_enumerate_images_from_handle :: proc(device: ^Device, swapchain: vk.SwapchainKHR, allocator := context.allocator, location := #caller_location) -> ([]vk.Image, bool) #optional_ok
+    {
+        if log.verbose_fail_error(!device_is_valid(device), "invalid vulkan device parameter", location) do return nil, false
+        
+        result: vk.Result
+        count: u32
+        result = vk.GetSwapchainImagesKHR(device.handle, swapchain, &count, nil)
+        if log.verbose_fail_error(result != .SUCCESS, "enumerate swapchain images, count querry", location) do return nil, false
+        
+        images, alloc_err := make([]vk.Image, count, allocator, location)
+        if log.verbose_fail_error(alloc_err != .None, "make swapchain images slice", location) do return nil, false
+
+        result = vk.GetSwapchainImagesKHR(device.handle, swapchain, &count, commons.array_try_as_pointer(images))
+        if log.verbose_fail_error(result != .SUCCESS, "enumerate swapchain images, fill querry", location)
+        {
+            delete(images, allocator)
+            return nil, false
+        }
+
+        return images, true
+    }
 
     @(export=api.SHARED, link_prefix=PREFIX)
     swapchain_create_from_descriptor :: proc(device: ^Device, surface: ^Surface, desc: ^Swapchain_Descriptor, location := #caller_location) -> (Swapchain, bool) #optional_ok
@@ -35,6 +59,9 @@ when api.EXPORT
         handle: vk.SwapchainKHR
         result := vk.CreateSwapchainKHR(device.handle, &info, nil, &handle)
         if log.verbose_fail_error(result != .SUCCESS, "create swapchain", location) do return {}, false
+
+        images, images_succ := swapchain_enumerate_images_from_handle(device, handle)
+        defer if images_succ do delete(images)
 
         swapchain: Swapchain
         swapchain.image_count = desc.image_count
