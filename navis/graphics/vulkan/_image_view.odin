@@ -25,6 +25,11 @@ Image_View :: struct
     handle: vk.ImageView,
 }
 
+image_view_create :: proc{
+    image_view_create_from_descriptor,
+    image_view_create_multiple_from_descriptor,
+}
+
 /*
 Checks if image view handle is valid.
 */

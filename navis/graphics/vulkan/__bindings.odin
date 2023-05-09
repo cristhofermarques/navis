@@ -96,7 +96,7 @@ when api.IMPORT
         swapchain_enumerate_images_from_handle :: proc(device: ^Device, swapchain: vk.SwapchainKHR, allocator := context.allocator, location := #caller_location) -> ([]vk.Image, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        swapchain_create_from_descriptor :: proc(device: ^Device, surface: ^Surface, desc: ^Swapchain_Descriptor, location := #caller_location) -> (Swapchain, bool) #optional_ok ---
+        swapchain_create_from_descriptor :: proc(device: ^Device, surface: ^Surface, render_pass: ^Render_Pass, desc: ^Swapchain_Descriptor, allocator := context.allocator, location := #caller_location) -> (Swapchain, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
         swapchain_destroy :: proc(device: ^Device, swapchain: ^Swapchain, location := #caller_location) -> bool ---
@@ -159,8 +159,15 @@ when api.IMPORT
         /* Target */
         @(link_prefix=PREFIX)
         target_create_from_descriptor :: proc(context_: ^Context, desc: ^Target_Descriptor, allocator := context.allocator, location := #caller_location) -> (Target, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         target_destroy :: proc(context_: ^Context, target: ^Target, location := #caller_location) -> bool ---
+        
+        /* Shader Module */
+        @(link_prefix=PREFIX)
+        shader_module_create_from_data :: proc(context_: ^Context, data: []byte, location := #caller_location) -> (vk.ShaderModule, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        shader_module_destroy :: proc(context_: ^Context, module: vk.ShaderModule, location := #caller_location) -> bool ---
     }
 }

@@ -24,4 +24,13 @@ when api.EXPORT
 
         return handle, true
     }
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    shader_module_destroy :: proc(context_: ^Context, module: vk.ShaderModule, location := #caller_location) -> bool
+    {
+        if log.verbose_fail_error(!context_is_valid(context_), "invalid vulkan context parameter", location) do return false
+
+        vk.DestroyShaderModule(context_.device.handle, module, nil)
+        return true
+    }
 }

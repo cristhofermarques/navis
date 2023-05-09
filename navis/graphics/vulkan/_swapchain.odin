@@ -12,10 +12,16 @@ Swapchain_Descriptor :: struct
     image_format: vk.SurfaceFormatKHR,
     present_mode: vk.PresentModeKHR,
     clipped: bool,
+    image_view_flags: vk.ImageViewCreateFlags,
+    image_view_type: vk.ImageViewType,
+    image_view_components: vk.ComponentMapping,
+    image_view_subresource_range: vk.ImageSubresourceRange,
+    framebuffer_flags: vk.FramebufferCreateFlags,
+    framebuffer_layers: i32,
 }
 
 /*
-TODO
+Swapchain Information.
 */
 Swapchain_Info :: struct
 {
@@ -31,10 +37,14 @@ Vulkan swapchain.
 */
 Swapchain :: struct
 {
+    allocator: runtime.Allocator,
     image_count: i32,
     image_extent: vk.Extent2D,
     image_format: vk.SurfaceFormatKHR,
     present_mode: vk.PresentModeKHR,
+    images: []vk.Image,
+    image_views: []Image_View,
+    framebuffers: []Framebuffer,
     handle: vk.SwapchainKHR, 
 }
 

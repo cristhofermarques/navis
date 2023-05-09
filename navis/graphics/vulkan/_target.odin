@@ -5,12 +5,14 @@ import "navis:graphics/ui"
 Target_Descriptor :: struct
 {
     window: ^ui.Window,
-    swapchain: Swapchain_Descriptor	,
+    render_pass: Render_Pass_Descriptor,
+    swapchain: Swapchain_Descriptor,
 }
 
 Target :: struct
 {
     surface: Surface,
+    render_pass: Render_Pass,
     swapchain: Swapchain,
 }
 
