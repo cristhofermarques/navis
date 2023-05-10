@@ -22,21 +22,16 @@ when api.EXPORT
         handle: vk.Fence
         result := vk.CreateFence(device.handle, &info, nil, &handle)
         if log.verbose_fail_error(result != .SUCCESS, "create vulkan fence", location) do return {}, false
-        
-        //Making fence
-        fence: Fence
-        fence.handle = handle
-        return fence, true
+        return handle, true
     }
 
     @(export=api.SHARED, link_prefix=PREFIX)
-    fence_destroy :: proc(device: ^Device, fence: ^Fence, location := #caller_location) -> bool
+    fence_destroy :: proc(device: ^Device, fence: Fence, location := #caller_location) -> bool
     {
         if log.verbose_fail_error(!device_is_valid(device), "invalid vulkan device parameter", location) do return false
         if log.verbose_fail_error(!fence_is_valid(fence), "invalid vulkan fence parameter", location) do return false
 
-        vk.DestroyFence(device.handle, fence.handle, nil)
-        fence.handle = 0
+        vk.DestroyFence(device.handle, fence, nil)
         return true
     }
 }

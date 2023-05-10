@@ -116,7 +116,7 @@ when api.IMPORT
         fence_create_from_descriptor :: proc(device: ^Device, desc: ^Fence_Descriptor, location := #caller_location) -> (Fence, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
-        fence_destroy :: proc(device: ^Device, fence: ^Fence, location := #caller_location) -> bool ---
+        fence_destroy :: proc(device: ^Device, fence: Fence, location := #caller_location) -> bool ---
         
         /* Pipeline Layout */
         @(link_prefix=PREFIX)

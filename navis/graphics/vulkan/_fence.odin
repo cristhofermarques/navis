@@ -13,15 +13,12 @@ Fence_Descriptor :: struct
 /*
 Vulkan fence.
 */
-Fence :: struct
-{
-    handle: vk.Fence,
-}
+Fence :: vk.Fence
 
 /*
 Checks if fence handle is valid.
 */
-fence_is_valid :: #force_inline proc(fence: ^Fence) -> bool
+fence_is_valid :: #force_inline proc(fence: Fence) -> bool
 {
-    return fence != nil && fence.handle != 0
+    return handle_is_valid(fence)
 }

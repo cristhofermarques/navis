@@ -4,6 +4,9 @@ import "vk"
 import "navis:commons"
 import "core:runtime"
 
+/*
+Vulkan instance descriptor.
+*/
 Instance_Descriptor :: struct
 {
     app_name: cstring,
@@ -13,6 +16,9 @@ Instance_Descriptor :: struct
     layers: []cstring,
 }
 
+/*
+Vulkan instance.
+*/
 Instance :: struct
 {
     __allocator: runtime.Allocator,
@@ -25,6 +31,9 @@ Instance :: struct
     handle: vk.Instance,
 }
 
+/*
+Creates a vulkan instance.
+*/
 instance_create :: proc{
     instance_create_from_descriptor,
     instance_create_from_parameters,
@@ -35,7 +44,7 @@ Check if instance is valid.
 */
 instance_is_valid :: #force_inline proc(instance: ^Instance) -> bool
 {
-    return instance != nil && instance.handle != nil
+    return instance != nil && handle_is_valid(instance.handle)
 }
 
 /*
@@ -43,7 +52,8 @@ Check if instance have provided extension enabled.
 */
 instance_is_extension_enabled :: #force_inline proc(instance: ^Instance, extension: cstring) -> bool
 {
-    return instance != nil && commons.array_contains(instance.enabled_extensions, extension)
+    if !instance_is_valid(instance) do return false
+    return commons.array_contains(instance.enabled_extensions, extension)
 }
 
 /*
@@ -51,5 +61,6 @@ Check if instance have provided layer enabled.
 */
 instance_is_layer_enabled :: #force_inline proc(instance: ^Instance, layer: cstring) -> bool
 {
-    return instance != nil && commons.array_contains(instance.enabled_layers, layer)
+    if !instance_is_valid(instance) do return false
+    return commons.array_contains(instance.enabled_layers, layer)
 }
