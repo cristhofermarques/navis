@@ -112,7 +112,7 @@ physical_device_get_properties :: #force_inline proc(physical_device: vk.Physica
 /*
 Return physical device memory properties
 */
-physical_device_get_memory_properties :: #force_inline proc(physical_device: vk.PhysicalDevice) -> vk.PhysicalDeviceProperties
+physical_device_get_memory_properties :: #force_inline proc(physical_device: vk.PhysicalDevice) -> vk.PhysicalDeviceMemoryProperties
 {
     properties: vk.PhysicalDeviceMemoryProperties
     vk.GetPhysicalDeviceMemoryProperties(physical_device, &properties)
