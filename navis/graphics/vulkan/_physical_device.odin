@@ -24,6 +24,7 @@ Physical_Device :: struct
     allocator: runtime.Allocator,
     features: vk.PhysicalDeviceFeatures,
     properties: vk.PhysicalDeviceProperties,
+    memory_properties: vk.PhysicalDeviceMemoryProperties,
     queue_infos: []Queue_Info,
     handle: vk.PhysicalDevice,
 }
@@ -106,6 +107,16 @@ physical_device_get_properties :: #force_inline proc(physical_device: vk.Physica
     physical_device_properties: vk.PhysicalDeviceProperties
     vk.GetPhysicalDeviceProperties(physical_device, &physical_device_properties)
     return physical_device_properties
+}
+
+/*
+Return physical device memory properties
+*/
+physical_device_get_memory_properties :: #force_inline proc(physical_device: vk.PhysicalDevice) -> vk.PhysicalDeviceProperties
+{
+    properties: vk.PhysicalDeviceMemoryProperties
+    vk.GetPhysicalDeviceMemoryProperties(physical_device, &properties)
+    return properties
 }
 
 /*

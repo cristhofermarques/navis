@@ -56,6 +56,7 @@ Return physical devices slice.
             physical_device.allocator = allocator
             physical_device.features = physical_device_get_features(handle)
             physical_device.properties = physical_device_get_properties(handle)
+            physical_device.memory_properties = physical_device_get_memory_properties(handle)
             physical_device.queue_infos = queue_enumerate_infos_from_handle(handle, allocator)
             physical_device.handle = handle
             physical_devices[index] = physical_device
