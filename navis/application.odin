@@ -123,7 +123,7 @@ Update Application.
         application.main_module.vtable.on_application_create_window(&desc, context.allocator)
         defer if desc.title != "" do delete(desc.title, context.allocator)
 
-        window, window_succ := ui.window_create(desc, context.allocator)
+        window, window_succ := ui.window_create(&desc, context.allocator)
         if !window_succ do return false
 
         commons.event_append(&window.common.event, desc.event_callback)

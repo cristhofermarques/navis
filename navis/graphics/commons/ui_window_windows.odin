@@ -29,19 +29,23 @@ Returns if window is valid.
 Create a Native Window
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    ui_window_create_separated :: proc(title: string, width, height: u32, mode: Window_Mode, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok
+    ui_window_create_from_descriptor :: proc(desc: ^Window_Descriptor, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok
     {
+        if log.verbose_fail_error(desc == nil, "invalid window descriptor parameter", location) do return {}, false
+
+        //Registering window class
         wndclass := compose_wndclassexw()
         found_wndclass := bool(windows.GetClassInfoExW(wndclass.hInstance, windows.L(WINDOW_CLASS_NAME), &wndclass))
         if !found_wndclass
         {
-            log.verbose_info("Window Class not Found, Registering Window Class", " ", location)
+            log.verbose_debug(args = {"window class not found, registering window class", wndclass}, sep = "", location = location)
             registered := bool(windows.RegisterClassExW(&wndclass))
-            if log.verbose_fail_error(!registered, "Register Window Class") do return {}, false
+            if log.verbose_fail_error(!registered, "register window class", location) do return {}, false
         }
-
+        
+        //Settuping window style
         wndstyle: windows.DWORD
-        switch mode
+        switch desc.mode
         {
             case .Windowed:
                 wndstyle = windows.WS_OVERLAPPED | windows.WS_SYSMENU
@@ -50,29 +54,26 @@ Create a Native Window
                 wndstyle = windows.WS_POPUP
         }
         
-        title_cstr := strings.clone_to_cstring(title, allocator)
+        //Cloning window title
+        title_cstr := strings.clone_to_cstring(desc.title, allocator)
         defer delete(title_cstr, allocator)
-
-        log.verbose_debug("Creating Window", " ", location)
+        
+        //Creating window
+        log.verbose_debug(args = {"creating window"}, sep = " ", location = location)
         title_u16 := transmute([^]u16)title_cstr
-        hwnd: windows.HWND = windows.CreateWindowExW(0, windows.L(WINDOW_CLASS_NAME), title_u16, wndstyle | windows.WS_VISIBLE, 0, 0, i32(width), i32(height), nil, nil, windows.HINSTANCE(windows.GetModuleHandleW(nil)), nil)
-        if log.verbose_fail_error(hwnd == nil, "Create Window", location) do return {}, false
-
+        hwnd: windows.HWND = windows.CreateWindowExW(0, windows.L(WINDOW_CLASS_NAME), title_u16, wndstyle | windows.WS_VISIBLE, 0, 0, cast(i32)desc.width, cast(i32)desc.height, nil, nil, windows.HINSTANCE(windows.GetModuleHandleW(nil)), nil)
+        if log.verbose_fail_error(hwnd == nil, "create window", location) do return {}, false
+        window_count += 1
+        
+        //Creating window event
         event := commons.event_make(Window_Event_Callback, 10, allocator)
-
+        
+        //Making window
         window: Window
-        window.common.mode = mode
+        window.common.mode = desc.mode
         window.common.event = event
         window.hwnd = hwnd
-        window_count += 1
-
         return window, true
-    }
-
-    @(export=api.SHARED, link_prefix=PREFIX)
-    ui_window_create_descriptor :: proc(desc: Window_Descriptor, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok
-    {
-        return ui_window_create(desc.title, desc.width, desc.height, desc.mode, allocator, location)
     }
 
 /*
@@ -81,22 +82,25 @@ Destroy a Native Window
     @(export=api.SHARED, link_prefix=PREFIX)
     ui_window_destroy :: proc(window: ^Window, location := #caller_location) -> bool
     {
-        if log.verbose_fail_error(window == nil, "Window Argument is 'nil'", location) do return false
+        if log.verbose_fail_error(!ui_window_is_valid(window), "invalid window parameter", location) do return false
         
-        log.verbose_debug("Destroying Window", location)
+        //Destroying window
+        log.verbose_debug("destroying window", location)
         success := bool(windows.DestroyWindow(window.hwnd))
-        if log.verbose_fail_error(!success, "Destroy Window", location) do return false
+        if log.verbose_fail_error(!success, "destroy window", location) do return false
 
-        commons.event_delete(&window.common.event)
-
+        //Checking for unregister window class
         if window_count -= 1; window_count == 0
         {
-            log.verbose_info("There is no Window, Unregistering Window Class", location)
+            log.verbose_debug(args = {"there is no window, unregistering window class"}, sep = "", location = location)
 
             hinstance := windows.HINSTANCE(windows.GetModuleHandleA(nil))
-            unregister_succ := bool(windows.UnregisterClassW(windows.L(WINDOW_CLASS_NAME), hinstance))
-            log.verbose_fail_error(!unregister_succ, "Unregister Window Class", location)
+            unregistered := bool(windows.UnregisterClassW(windows.L(WINDOW_CLASS_NAME), hinstance))
+            log.verbose_fail_error(!unregistered, "unregister window class", location)
         }
+
+        //Deleting window event
+        commons.event_delete(&window.common.event)
 
         return true
     }

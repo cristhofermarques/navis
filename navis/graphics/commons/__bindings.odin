@@ -17,10 +17,7 @@ when api.IMPORT
         ui_window_is_valid :: proc(window: ^Window) -> bool ---
 
         @(link_prefix=PREFIX)
-        ui_window_create_separated :: proc(title: string, width, height: u32, mode: Window_Mode, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok ---
-
-        @(link_prefix=PREFIX)
-        ui_window_create_descriptor :: proc(desc: Window_Descriptor, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok ---
+        ui_window_create_from_descriptor :: proc(desc: ^Window_Descriptor, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
         ui_window_destroy :: proc(window: ^Window, location := #caller_location) -> bool ---

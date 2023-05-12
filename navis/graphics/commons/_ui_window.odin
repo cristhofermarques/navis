@@ -45,6 +45,19 @@ Window_Descriptor :: struct
 }
 
 ui_window_create :: proc{
-    ui_window_create_separated,
-    ui_window_create_descriptor,
+    ui_window_create_from_descriptor,
+    ui_window_create_from_parameters,
+}
+
+/*
+Create a native window from parameters.
+*/
+ui_window_create_from_parameters :: proc(title: string, width, height: u32, mode: Window_Mode, allocator := context.allocator, location := #caller_location) -> (Window, bool) #optional_ok
+{
+    desc: Window_Descriptor
+    desc.title = title
+    desc.width = width
+    desc.height = height
+    desc.mode = mode
+    return ui_window_create_from_descriptor(&desc, allocator, location)
 }
