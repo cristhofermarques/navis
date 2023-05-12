@@ -14,6 +14,24 @@ when api.IMPORT
     @(default_calling_convention="odin")
     foreign navis
     {
+        /* Library */
+        @(link_prefix=PREFIX)
+        library_load :: proc(location := #caller_location) -> (Library, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        library_unload :: proc(library: ^Library, location := #caller_location) -> bool ---
+        
+        @(link_prefix=PREFIX)
+        library_populate :: proc(library: ^Library) ---
+        
+        /* Instance VTable */
+        @(link_prefix=PREFIX)
+        instance_vtable_populate :: proc(library: ^Library, instance: Instance, vtable: ^Instance_VTable) ---
+        
+        /* Device VTable */
+        @(link_prefix=PREFIX)
+        device_vtable_populate :: proc(instance: Instance, instance_vtable: ^Instance_VTable, device: Device, vtable: ^Device_VTable) ---
+
         //Variables
         @(link_prefix=PREFIX) _vulkan_library: dynlib.Library
 
