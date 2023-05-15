@@ -5,6 +5,7 @@ set build_mode_directory=release
 set build_arch_directory=amd64
 set odin_build_target=-target:windows_amd64
 set odin_build_debug=
+set build_verbose=false
 
 for %%a in (%*) do (
 
@@ -27,6 +28,10 @@ for %%a in (%*) do (
         set build_mode_directory=release
         set odin_build_debug=
     )
+
+    if %%a==-verbose (
+        set build_verbose=true
+    )
 )
 
 set build_path=%binaries_directory%\windows\shared
@@ -41,6 +46,7 @@ set build_command=%build_command% %odin_build_target%
 set build_command=%build_command% %odin_build_mode%
 set build_command=%build_command% -define:NAVIS_API_SHARED=true
 set build_command=%build_command% -define:NAVIS_API_EXPORT=true
+set build_command=%build_command% -define:NAVIS_API_VERBOSE=%build_verbose%
 set build_command=%build_command% -define:NAVIS_API_VERSION_MAJOR=23
 set build_command=%build_command% -define:NAVIS_API_VERSION_MINOR=5
 set build_command=%build_command% -define:NAVIS_API_VERSION_PATCH=0
@@ -52,5 +58,5 @@ if not exist "%build_path%" (
     mkdir %build_path%
 )
 
-@echo    Building os:windows kind:shared arch:%build_arch_directory% mode:%build_mode_directory%
+@echo    Building os:windows kind:shared arch:%build_arch_directory% mode:%build_mode_directory% verbose:%build_verbose%
 @odin %build_command%
