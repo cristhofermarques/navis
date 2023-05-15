@@ -145,9 +145,29 @@ when api.IMPORT
         /* Image View */
         @(link_prefix=PREFIX)
         framebuffer_create_from_descriptor :: proc(device: ^Device, render_pass: ^Render_Pass, desc: ^Framebuffer_Descriptor, image_views: []Image_View, allocator := context.allocator, location := #caller_location) -> (Framebuffer, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         framebuffer_destroy :: proc(device: ^Device, framebuffer: ^Framebuffer, location := #caller_location) -> bool ---
+        
+        /* Buffer */
+        @(link_prefix=PREFIX)
+        buffer_get_requirements_from_handle :: proc(device: ^Device, buffer: vk.Buffer, location := #caller_location) -> (vk.MemoryRequirements, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        buffer_create_from_descriptor :: proc(device: ^Device, desc: ^Buffer_Descriptor, allocator := context.allocator, location := #caller_location) -> (Buffer, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        buffer_destroy :: proc(device: ^Device, buffer: ^Buffer, location := #caller_location) -> bool ---
+
+        @(link_prefix=PREFIX)
+        buffer_filter_memory_types :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool) ---
+
+        /* Memory */
+        @(link_prefix=PREFIX)
+        memory_create_from_descriptor :: proc(device: ^Device, desc: ^Memory_Descriptor, location := #caller_location) -> (Memory, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        memory_destroy :: proc(device: ^Device, memory: ^Memory, location := #caller_location) -> bool ---
         
         /* Context */
         @(link_prefix=PREFIX)

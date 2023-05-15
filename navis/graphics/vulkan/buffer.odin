@@ -9,37 +9,191 @@ when api.EXPORT
     import "navis:commons/log"
     import "core:runtime"
 
-    Buffer_Descriptor :: struct
+/*
+Get buffer memory requirements from a handle.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_get_requirements_from_handle :: proc(device: ^Device, buffer: vk.Buffer, location := #caller_location) -> (vk.MemoryRequirements, bool) #optional_ok
     {
-        flags: vk.BufferCreateFlags,
-        usage: vk.BufferUsageFlags,
-        indices: []i32,
-        size: uint,
+        //Nil device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Device Parameter"}, sep = " ", location = location)
+            return {}, false
+        }
+
+        //Nil device parameter
+        if !handle_is_valid(buffer)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Buffer Handle Parameter"}, sep = " ", location = location)
+            return {}, false
+        }
+
+        //Getting requirements
+        requirements: vk.MemoryRequirements
+        vk.GetBufferMemoryRequirements(device.handle, buffer, &requirements)
+        return requirements, true
     }
 
-    Buffer :: struct
-    {
-        allocator: runtime.Allocator,
-        usage: vk.BufferUsageFlags,
-        indices: []i32,
-        size: uint,
-        requirements: vk.MemoryRequirements,
-    }
-
+/*
+Create a buffer from descriptor.
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
     buffer_create_from_descriptor :: proc(device: ^Device, desc: ^Buffer_Descriptor, allocator := context.allocator, location := #caller_location) -> (Buffer, bool) #optional_ok
     {
-        if log.verbose_fail_error(!device_is_valid(device), "invalid vulkan device parameter", location) do return {}, false
-        if log.verbose_fail_error(desc == nil, "invalid buffer descriptor parameter", location) do return {}, false
-        
+        //Nil device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Device Parameter"}, sep = " ", location = location)
+            return {}, false
+        }
+
+        //Nil descriptor parameter
+        if desc == nil
+        {
+            log.verbose_error(args = {"Invalid Buffer Descriptor Parameter"}, sep = " ", location = location)
+            return {}, false
+        }
+    
+        //Indices length error
         indices_len := len(desc.indices)
-        if log.verbose_fail_error(indices_len < 1, "invalid descriptor indices length", location) do return {}, false
+        if indices_len < 1
+        {
+            log.verbose_error(args = {"Invalid Buffer Descriptor Indices Length", indices_len}, sep = " ", location = location)
+            return {}, false
+        }
 
-
+        //Making create info
         info: vk.BufferCreateInfo
         info.sType = .BUFFER_CREATE_INFO
         info.flags = desc.flags
         info.usage = desc.usage
-        return {}, false
+        info.size = cast(vk.DeviceSize)desc.size
+        info.pQueueFamilyIndices = transmute([^]u32)commons.array_try_as_pointer(desc.indices)
+        info.queueFamilyIndexCount = cast(u32)commons.array_try_len(desc.indices)
+        info.sharingMode = indices_len > 1 ? .CONCURRENT : .EXCLUSIVE
+
+        //Creating buffer
+        handle: vk.Buffer
+        result := vk.CreateBuffer(device.handle, &info, nil, &handle)
+        if result != .SUCCESS
+        {
+            log.verbose_error(args = {"Fail to Create Vulkan Buffer, Resul", result}, sep = " ", location = location)
+            return {}, false
+        }
+
+        //Cloning info
+        buffer_requirements, r_success := buffer_get_requirements_from_handle(device, handle)
+        if !r_success
+        {
+            log.verbose_error(args = {"Fail to Clone Buffer Indices from Descriptor"}, sep = " ", location = location)
+            vk.DestroyBuffer(device.handle, handle, nil)
+            return {}, false
+        }
+
+        buffer_indices, bi_success := commons.array_clone(desc.indices, allocator)
+        if !bi_success
+        {
+            log.verbose_error(args = {"Fail to Clone Buffer Indices from Descriptor"}, sep = " ", location = location)
+            vk.DestroyBuffer(device.handle, handle, nil)
+            return {}, false
+        }
+
+        //Making buffer
+        buffer: Buffer
+        buffer.allocator = allocator
+        buffer.handle = handle
+        buffer.usage = info.usage
+        buffer.size = desc.size
+        buffer.requirements = buffer_requirements
+        buffer.indices = buffer_indices
+        return buffer, true
+    }
+
+/*
+Destroy a buffer.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_destroy :: proc(device: ^Device, buffer: ^Buffer, location := #caller_location) -> bool
+    {
+        //Nil device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Device Parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Nil buffer parameter
+        if !buffer_is_valid(buffer)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Buffer Parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Destroying buffer
+        vk.DestroyBuffer(device.handle, buffer.handle, nil)
+        buffer.handle = 0
+
+        //Deleting buffer
+        allocator := buffer.allocator
+
+        if buffer.indices != nil
+        {
+            delete(buffer.indices, allocator)
+            buffer.indices = nil
+        }
+
+        return true
+    }
+
+/*
+Filter physical device memory indices that matches to the buffer requirements.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_filter_memory_types :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool)
+    {
+        //Nil physical device parameter
+        if !physical_device_is_valid(physical_device)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Physical Device Parameter"}, sep = " ", location = location)
+            return nil, false
+        }
+
+        //Nil buffer parameter
+        if !buffer_is_valid(buffer)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Buffer Parameter"}, sep = " ", location = location)
+            return nil, false
+        }
+ 
+        //Allocating matches
+        matches, alloc_err := make([dynamic]i32, context.temp_allocator, location)
+        if alloc_err != .None
+        {
+            log.verbose_error(args = {"Allocate Buffer Filter Indices Matches Slice"}, sep = " ", location = location)
+            return nil, false
+        }
+        defer delete(matches)
+
+        //Filtering
+        for i: u32 = 0; i < physical_device.memory_properties.memoryTypeCount; i += 1
+        {
+            types := physical_device.memory_properties.memoryTypes[i]
+
+            support_type := bool((u32(1) << i) & buffer.requirements.memoryTypeBits)
+            if !support_type do continue
+            
+            support_flags := types.propertyFlags & property_flags == property_flags
+            if !support_flags do continue
+
+            support := support_type && support_flags
+            if support do append(&matches, i32(i))
+        }
+
+        //No matches check
+        matches_len := len(matches)
+        if matches_len < 1 do return nil, false
+
+        return commons.slice_from_dynamic(matches, allocator)
     }
 }
