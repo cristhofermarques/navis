@@ -10,7 +10,7 @@ Buffer_Descriptor :: struct
 {
     flags: vk.BufferCreateFlags,
     usage: vk.BufferUsageFlags,
-    indices: []i32,
+    queue_indices: []i32,
     size: uint,
 }
 
@@ -21,7 +21,7 @@ Buffer :: struct
 {
     allocator: runtime.Allocator,
     usage: vk.BufferUsageFlags,
-    indices: []i32,
+    queue_indices: []i32,
     size: uint,
     requirements: vk.MemoryRequirements,
     handle: vk.Buffer,

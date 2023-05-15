@@ -56,10 +56,10 @@ Create a buffer from descriptor.
         }
     
         //Indices length error
-        indices_len := len(desc.indices)
-        if indices_len < 1
+        queue_indices_len := len(desc.queue_indices)
+        if queue_indices_len < 1
         {
-            log.verbose_error(args = {"Invalid Buffer Descriptor Indices Length", indices_len}, sep = " ", location = location)
+            log.verbose_error(args = {"Invalid Buffer Descriptor Queue Indices Length", desc.queue_indices}, sep = " ", location = location)
             return {}, false
         }
 
@@ -69,16 +69,16 @@ Create a buffer from descriptor.
         info.flags = desc.flags
         info.usage = desc.usage
         info.size = cast(vk.DeviceSize)desc.size
-        info.pQueueFamilyIndices = transmute([^]u32)commons.array_try_as_pointer(desc.indices)
-        info.queueFamilyIndexCount = cast(u32)commons.array_try_len(desc.indices)
-        info.sharingMode = indices_len > 1 ? .CONCURRENT : .EXCLUSIVE
+        info.pQueueFamilyIndices = transmute([^]u32)commons.array_try_as_pointer(desc.queue_indices)
+        info.queueFamilyIndexCount = cast(u32)commons.array_try_len(desc.queue_indices)
+        info.sharingMode = queue_indices_len > 1 ? .CONCURRENT : .EXCLUSIVE
 
         //Creating buffer
         handle: vk.Buffer
         result := vk.CreateBuffer(device.handle, &info, nil, &handle)
         if result != .SUCCESS
         {
-            log.verbose_error(args = {"Fail to Create Vulkan Buffer, Resul", result}, sep = " ", location = location)
+            log.verbose_error(args = {"Fail to Create Vulkan Buffer", result}, sep = " ", location = location)
             return {}, false
         }
 
@@ -91,10 +91,10 @@ Create a buffer from descriptor.
             return {}, false
         }
 
-        buffer_indices, bi_success := commons.array_clone(desc.indices, allocator)
-        if !bi_success
+        buffer_queue_indices, qi_success := commons.array_clone(desc.queue_indices, allocator)
+        if !qi_success
         {
-            log.verbose_error(args = {"Fail to Clone Buffer Indices from Descriptor"}, sep = " ", location = location)
+            log.verbose_error(args = {"Fail to Clone Buffer Queue Indices from Descriptor"}, sep = " ", location = location)
             vk.DestroyBuffer(device.handle, handle, nil)
             return {}, false
         }
@@ -106,7 +106,7 @@ Create a buffer from descriptor.
         buffer.usage = info.usage
         buffer.size = desc.size
         buffer.requirements = buffer_requirements
-        buffer.indices = buffer_indices
+        buffer.queue_indices = buffer_queue_indices
         return buffer, true
     }
 
@@ -137,10 +137,10 @@ Destroy a buffer.
         //Deleting buffer
         allocator := buffer.allocator
 
-        if buffer.indices != nil
+        if buffer.queue_indices != nil
         {
-            delete(buffer.indices, allocator)
-            buffer.indices = nil
+            delete(buffer.queue_indices, allocator)
+            buffer.queue_indices = nil
         }
 
         return true
