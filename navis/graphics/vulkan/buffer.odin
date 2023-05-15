@@ -167,7 +167,7 @@ Filter physical device memory indices that matches to the buffer requirements.
         }
  
         //Allocating matches
-        matches, alloc_err := make([dynamic]i32, context.temp_allocator, location)
+        matches, alloc_err := make([dynamic]i32, 0, physical_device.memory_properties.memoryTypeCount, context.temp_allocator, location)
         if alloc_err != .None
         {
             log.verbose_error(args = {"Allocate Buffer Filter Indices Matches Slice"}, sep = " ", location = location)
@@ -195,5 +195,45 @@ Filter physical device memory indices that matches to the buffer requirements.
         if matches_len < 1 do return nil, false
 
         return commons.slice_from_dynamic(matches, allocator)
+    }
+
+/*
+Bind vulkan buffer to memory.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_bind_memory :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, location := #caller_location) -> bool
+    {
+        //Nil device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Device Parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Nil device parameter
+        if !memory_is_valid(memory)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Memory Parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Nil buffer parameter
+        if !buffer_is_valid(buffer)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Buffer Parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Binding
+        log.verbose_info(args = {"Binding Vulkan Buffer", buffer, "to Memory", memory, "Offset", offset}, sep = " ", location = location)
+        result := vk.BindBufferMemory(device.handle, buffer.handle, memory.handle, vk.DeviceSize(offset))
+        if result != .SUCCESS
+        {
+            log.verbose_error(args = {result, "Failed to Bind Vulkan Buffer", buffer, "to Memory", memory, "Offset", offset}, sep = " ", location = location)
+            return false
+        }
+
+        log.verbose_debug(args = {"Binded Vulkan Buffer", buffer, "to Memory", memory, "Offset", offset}, sep = " ", location = location)
+        return true
     }
 }

@@ -35,6 +35,9 @@ buffer_is_valid :: #force_inline proc(buffer: ^Buffer) -> bool
     return buffer != nil && handle_is_valid(buffer.handle)
 }
 
+/*
+Create a vulkan buffer.
+*/
 buffer_create :: proc{
     buffer_create_from_descriptor,
 }

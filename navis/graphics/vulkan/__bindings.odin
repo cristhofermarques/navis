@@ -162,6 +162,9 @@ when api.IMPORT
         @(link_prefix=PREFIX)
         buffer_filter_memory_types :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool) ---
 
+        @(link_prefix=PREFIX)
+        buffer_bind_memory :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, location := #caller_location) -> bool ---
+
         /* Memory */
         @(link_prefix=PREFIX)
         memory_create_from_descriptor :: proc(device: ^Device, desc: ^Memory_Descriptor, location := #caller_location) -> (Memory, bool) #optional_ok ---
@@ -169,6 +172,11 @@ when api.IMPORT
         @(link_prefix=PREFIX)
         memory_destroy :: proc(device: ^Device, memory: ^Memory, location := #caller_location) -> bool ---
         
+        /* Vertex Input */
+        @(link_prefix=PREFIX)
+        vertex_input_compose_stage :: proc(desc: ^Vertex_Input_Descriptor) ---
+
+
         /* Context */
         @(link_prefix=PREFIX)
         context_create_from_descriptor :: proc(desc: ^Context_Descriptor, allocator := context.allocator, location := #caller_location) -> (Context, bool) #optional_ok ---
