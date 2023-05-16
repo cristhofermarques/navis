@@ -7,57 +7,42 @@ when api.EXPORT
 {
 	import "navis:commons/log"
 
-    //Vulkan library
+	/*
+	Vulkan library.
+	*/
     @(export=api.SHARED, link_prefix=PREFIX)
-    _vulkan_library: dynlib.Library = nil
+	library: Library
 
-    //Gets if vulkan library is loaded
-    @(export=api.SHARED, link_prefix=PREFIX)
-    is_vulkan_library_loaded :: #force_inline proc() -> bool
-    {
-        return _vulkan_library != nil
-    }
-
-    //Gets or load vulkan library
-    @(export=api.SHARED, link_prefix=PREFIX)
-    get_or_load_vulkan_library :: proc() -> (dynlib.Library, bool)
-    {
-        if is_vulkan_library_loaded() do return _vulkan_library, true
-        
-        vulkan_library_name: string
-        when ODIN_OS == .Windows do vulkan_library_name = "vulkan-1.dll"
-        when ODIN_OS == .Linux do vulkan_library_name = "vulkan.so.1"
-
-		log.verbose_info(args = {"loading vulkan shared library"})
-        library, success := dynlib.load_library(vulkan_library_name)
-        if success do _vulkan_library = library
-        return _vulkan_library, success
-    }
-
-    //Unload vulkan library if its loaded
-    @(export=api.SHARED, link_prefix=PREFIX)
-    unload_vulkan_library :: proc() -> bool
-    {
-        if !is_vulkan_library_loaded() do return false
-
-		log.verbose_info(args = {"unloading vulkan shared library"})
-        success := dynlib.unload_library(_vulkan_library)
-        if success do _vulkan_library = nil
-        return success
-    }
+/*
+Get or loads vulkan library.
+*/
+	library_get_or_load :: #force_inline proc(location := #caller_location) -> Library
+	{
+		if library_is_valid(library) do return library
+		else
+		{
+			loaded: bool
+			library, loaded = library_load()
+			if !loaded do return nil
+			return library
+		}
+	}
 
     //Create instance and additionaly loads instance releated procedures, including vulkan library
     @(export=api.SHARED, link_prefix=PREFIX)
     _create_instance :: proc(instance_create_info: ^InstanceCreateInfo, allocation_callbacks: ^AllocationCallbacks, instance: ^Instance) -> Result
     {
-        success: bool
-        vulkan_library: dynlib.Library
-        vulkan_library, success = get_or_load_vulkan_library()
-        if !success do return .ERROR_UNKNOWN
+		_library := library_get_or_load()
+		if !library_is_valid(_library) do return .ERROR_UNKNOWN
 
 		VK_GET_INSTANCE_PROC_ADDR :: "vkGetInstanceProcAddr"
-        address, found := dynlib.symbol_address(vulkan_library, VK_GET_INSTANCE_PROC_ADDR)
-        if found do load_global_procedures(rawptr(address))
+        get_instance_proc_addr, found := dynlib.symbol_address(_library, VK_GET_INSTANCE_PROC_ADDR)
+		if !found
+		{
+			return .ERROR_UNKNOWN
+		}
+
+        load_global_procedures(get_instance_proc_addr)
 
         result := CreateInstance(instance_create_info, allocation_callbacks, instance)
         if result == .SUCCESS do load_instance_procedures(instance^)
@@ -69,7 +54,11 @@ when api.EXPORT
     _destroy_instance :: proc(instance: Instance, allocation_callbacks: ^AllocationCallbacks)
     {
         DestroyInstance(instance, allocation_callbacks)
-        unload_vulkan_library()
+        if library_is_valid(library)
+		{
+			library_unload(library)
+			library = nil
+		}
     }
     
     //Create device and additionaly loads device releated procedures
