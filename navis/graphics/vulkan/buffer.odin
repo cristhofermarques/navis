@@ -260,7 +260,7 @@ Filter physical device memory indices that matches to the buffers requirements.
         matches, alloc_err := make([dynamic]i32, 0, physical_device.memory_properties.memoryTypeCount, context.temp_allocator, location)
         if alloc_err != .None
         {
-            log.verbose_error(args = {"Allocate Buffer Filter Indices Matches Slice"}, sep = " ", location = location)
+            log.verbose_error(args = {"Allocate Buffer Filter Memory Type Indices Matches Slice"}, sep = " ", location = location)
             return nil, false
         }
         defer delete(matches)
@@ -268,14 +268,17 @@ Filter physical device memory indices that matches to the buffers requirements.
         //Filtering
         for i: u32 = 0; i < physical_device.memory_properties.memoryTypeCount; i += 1
         {
-            types := physical_device.memory_properties.memoryTypes[i]
             support := buffer_support_memory_type_index(physical_device, buffers, i, property_flags)
             if support do append(&matches, i32(i))
         }
 
         //No matches check
         matches_len := len(matches)
-        if matches_len < 1 do return nil, false
+        if matches_len < 1
+        {
+            log.verbose_error(args = {"No Matches at Buffer Memory Type Indices Filtering"}, sep = " ", location = location)
+            return nil, false
+        }
 
         return commons.slice_from_dynamic(matches, allocator)
     }
