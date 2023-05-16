@@ -33,7 +33,7 @@ Create a Native Window
     {
         if desc == nil
         {
-            log.verbose_error(args = {"Invalid Window Descriptor Parameter"}, sep = " ", location = location)
+            log.verbose_error(args = {"Invalid window descriptor parameter"}, sep = " ", location = location)
             return {}, false
         }
 
@@ -42,11 +42,11 @@ Create a Native Window
         found_wndclass := bool(windows.GetClassInfoExW(wndclass.hInstance, windows.L(WINDOW_CLASS_NAME), &wndclass))
         if !found_wndclass
         {
-            log.verbose_info(args = {"Window Class not Found, Registering Window Class", wndclass}, sep = " ", location = location)
+            log.verbose_info(args = {"Window class not found, registering window class", wndclass}, sep = " ", location = location)
             registered := bool(windows.RegisterClassExW(&wndclass))
             if !registered
             {
-                log.verbose_error(args = {"Failed to Register Window Class", "Windows Code", windows.GetLastError()}, sep = " ", location = location)
+                log.verbose_error(args = {"Failed to register window class", "Windows error code", windows.GetLastError()}, sep = " ", location = location)
                 return {}, false
             }
         }
@@ -67,12 +67,12 @@ Create a Native Window
         defer delete(title_cstr, allocator)
         
         //Creating window
-        log.verbose_info(args = {"Creating Window", desc, wndclass}, sep = " ", location = location)
+        log.verbose_info(args = {"Creating window", desc, wndclass}, sep = " ", location = location)
         title_u16 := transmute([^]u16)title_cstr
         hwnd: windows.HWND = windows.CreateWindowExW(0, windows.L(WINDOW_CLASS_NAME), title_u16, wndstyle | windows.WS_VISIBLE, 0, 0, cast(i32)desc.width, cast(i32)desc.height, nil, nil, windows.HINSTANCE(windows.GetModuleHandleW(nil)), nil)
         if hwnd == nil
         {
-            log.verbose_error(args = {"Failed to Create Window", "Windows Code", windows.GetLastError()}, sep = " ", location = location)
+            log.verbose_error(args = {"Failed to create window", "Windows error code", windows.GetLastError()}, sep = " ", location = location)
             return {}, false
         }
         
@@ -86,7 +86,7 @@ Create a Native Window
         window.hwnd = hwnd
         
         window_count += 1
-        log.verbose_info(args = {"Created Window", window}, sep = " ", location = location)
+        log.verbose_info(args = {"Window created", window}, sep = " ", location = location)
         return window, true
     }
 
@@ -98,29 +98,29 @@ Destroy a Native Window
     {
         if !ui_window_is_valid(window)
         {
-            log.verbose_error(args = {"Invalid Window Parameter"}, sep = " ", location = location)
+            log.verbose_error(args = {"Invalid window parameter"}, sep = " ", location = location)
             return false
         }
         
         //Destroying window
-        log.verbose_info(args = {"Destroying Window", window}, sep = " ", location = location)
+        log.verbose_info(args = {"Destroying window", window}, sep = " ", location = location)
         success := bool(windows.DestroyWindow(window.hwnd))
         if !success
         {
-            log.verbose_error(args = {"Failed to Destroy Window", "Windows Code", windows.GetLastError()}, sep = " ", location = location)
+            log.verbose_error(args = {"Failed to destroy window", "Windows error code", windows.GetLastError()}, sep = " ", location = location)
             return false
         }
 
         //Checking for unregister window class
         if window_count -= 1; window_count == 0
         {
-            log.verbose_info(args = {"There is no Window, Unregistering Window Class", WINDOW_CLASS_NAME}, sep = " ", location = location)
+            log.verbose_info(args = {"There is no window, unregistering window class", WINDOW_CLASS_NAME}, sep = " ", location = location)
         
             hinstance := windows.HINSTANCE(windows.GetModuleHandleA(nil))
             unregistered := bool(windows.UnregisterClassW(windows.L(WINDOW_CLASS_NAME), hinstance))
             if !unregistered
             {
-                log.verbose_error(args = {"Failed to Unregister Window Class", WINDOW_CLASS_NAME, "Windows Code", windows.GetLastError()}, sep = " ", location = location)
+                log.verbose_error(args = {"Failed to unregister window class", WINDOW_CLASS_NAME, "Windows error code", windows.GetLastError()}, sep = " ", location = location)
                 return false
             }
         }
@@ -128,7 +128,7 @@ Destroy a Native Window
         //Deleting window event
         commons.event_delete(&window.common.event)
 
-        log.verbose_info(args = {"Destroyed Window"}, sep = " ", location = location)
+        log.verbose_info(args = {"Window destroyed "}, sep = " ", location = location)
         return true
     }
 
