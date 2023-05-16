@@ -27,12 +27,31 @@ Buffer :: struct
     handle: vk.Buffer,
 }
 
+buffer_is_valid :: proc{
+    buffer_is_valid_single,
+    buffer_is_valid_multiple,
+}
+
 /*
 Checks if buffer handle is valid.
 */
-buffer_is_valid :: #force_inline proc(buffer: ^Buffer) -> bool
+buffer_is_valid_single :: #force_inline proc(buffer: ^Buffer) -> bool
 {
     return buffer != nil && handle_is_valid(buffer.handle)
+}
+
+/*
+Checks if buffers handles is valid.
+*/
+buffer_is_valid_multiple :: #force_inline proc(buffers: []Buffer) -> bool
+{
+    if buffers == nil do return false
+    for i := 0; i < len(buffers); i += 1
+    {
+        if !buffer_is_valid_single(&buffers[i]) do return false
+    }
+
+    return true
 }
 
 /*
@@ -40,4 +59,9 @@ Create a vulkan buffer.
 */
 buffer_create :: proc{
     buffer_create_from_descriptor,
+}
+
+buffer_filter_memory_types :: proc{
+    buffer_filter_memory_types_single,
+    buffer_filter_memory_types_multiple,
 }

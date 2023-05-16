@@ -160,7 +160,10 @@ when api.IMPORT
         buffer_destroy :: proc(device: ^Device, buffer: ^Buffer, location := #caller_location) -> bool ---
 
         @(link_prefix=PREFIX)
-        buffer_filter_memory_types :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool) ---
+        buffer_filter_memory_types_single :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool) ---
+
+        @(link_prefix=PREFIX)
+        buffer_filter_memory_types_multiple :: proc(physical_device: ^Physical_Device, buffers: []Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool) ---
 
         @(link_prefix=PREFIX)
         buffer_bind_memory :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, location := #caller_location) -> bool ---

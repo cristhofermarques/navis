@@ -150,7 +150,7 @@ Destroy a buffer.
 Filter physical device memory indices that matches to the buffer requirements.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    buffer_filter_memory_types :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool)
+    buffer_filter_memory_types_single :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool)
     {
         //Nil physical device parameter
         if !physical_device_is_valid(physical_device)
@@ -187,6 +187,89 @@ Filter physical device memory indices that matches to the buffer requirements.
             if !support_flags do continue
 
             support := support_type && support_flags
+            if support do append(&matches, i32(i))
+        }
+
+        //No matches check
+        matches_len := len(matches)
+        if matches_len < 1 do return nil, false
+
+        return commons.slice_from_dynamic(matches, allocator)
+    }
+
+    buffer_support_memory_type_index :: proc{
+        buffer_support_memory_type_index_single,
+        buffer_support_memory_type_index_multiple,
+    }
+
+/*
+Checks if buffer support memory type index and property flags.
+*/
+    buffer_support_memory_type_index_single :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, type_index: u32, property_flags: vk.MemoryPropertyFlags) -> bool
+    {
+        if !physical_device_is_valid(physical_device) || !buffer_is_valid(buffer) || type_index > physical_device.memory_properties.memoryTypeCount do return false
+
+        types := physical_device.memory_properties.memoryTypes[type_index]
+
+        support_type := bool((u32(1) << type_index) & buffer.requirements.memoryTypeBits)
+        if !support_type do return false
+        
+        support_flags := types.propertyFlags & property_flags == property_flags
+        if !support_flags do return false
+
+        return true
+    }
+
+/*
+Checks if buffers support memory type index and property flags.
+*/
+    buffer_support_memory_type_index_multiple :: proc(physical_device: ^Physical_Device, buffers: []Buffer, type_index: u32, property_flags: vk.MemoryPropertyFlags) -> bool
+    {
+        if !physical_device_is_valid(physical_device) || !buffer_is_valid(buffers) || type_index > physical_device.memory_properties.memoryTypeCount do return false
+
+        for i := 0; i < len(buffers); i += 1
+        {
+            support := buffer_support_memory_type_index_single(physical_device, &buffers[i], type_index, property_flags)
+            if !support do return false
+        }
+
+        return true
+    }
+
+/*
+Filter physical device memory indices that matches to the buffers requirements.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_filter_memory_types_multiple :: proc(physical_device: ^Physical_Device, buffers: []Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool)
+    {
+        //Nil physical device parameter
+        if !physical_device_is_valid(physical_device)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Physical Device Parameter"}, sep = " ", location = location)
+            return nil, false
+        }
+
+        //Nil buffer parameter
+        if !buffer_is_valid(buffers)
+        {
+            log.verbose_error(args = {"Invalid Vulkan Buffers Parameter"}, sep = " ", location = location)
+            return nil, false
+        }
+ 
+        //Allocating matches
+        matches, alloc_err := make([dynamic]i32, 0, physical_device.memory_properties.memoryTypeCount, context.temp_allocator, location)
+        if alloc_err != .None
+        {
+            log.verbose_error(args = {"Allocate Buffer Filter Indices Matches Slice"}, sep = " ", location = location)
+            return nil, false
+        }
+        defer delete(matches)
+
+        //Filtering
+        for i: u32 = 0; i < physical_device.memory_properties.memoryTypeCount; i += 1
+        {
+            types := physical_device.memory_properties.memoryTypes[i]
+            support := buffer_support_memory_type_index(physical_device, buffers, i, property_flags)
             if support do append(&matches, i32(i))
         }
 
