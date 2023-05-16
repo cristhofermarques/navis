@@ -57,6 +57,11 @@ buffer_get_size :: proc{
     buffer_get_size_multiple,
 }
 
+buffer_copy_content :: proc{
+    buffer_copy_content_single,
+    buffer_copy_content_multiple_stacked,
+}
+
 /*
 Checks if buffer handle is valid.
 */

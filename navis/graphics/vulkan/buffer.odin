@@ -8,6 +8,7 @@ when api.EXPORT
     import "navis:commons"
     import "navis:commons/log"
     import "core:runtime"
+    import "core:mem"
 
 /*
 Get buffer memory requirements from a handle.
@@ -18,14 +19,14 @@ Get buffer memory requirements from a handle.
         //Nil device parameter
         if !device_is_valid(device)
         {
-            log.verbose_error(args = {"Invalid Vulkan Device Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Device Parameter")
             return {}, false
         }
 
         //Nil device parameter
         if !handle_is_valid(buffer)
         {
-            log.verbose_error(args = {"Invalid Vulkan Buffer Handle Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Buffer Handle Parameter")
             return {}, false
         }
 
@@ -44,14 +45,14 @@ Create a buffer from descriptor.
         //Nil device parameter
         if !device_is_valid(device)
         {
-            log.verbose_error(args = {"Invalid Vulkan Device Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Device Parameter")
             return {}, false
         }
 
         //Nil descriptor parameter
         if desc == nil
         {
-            log.verbose_error(args = {"Invalid Buffer Descriptor Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Buffer Descriptor Parameter")
             return {}, false
         }
     
@@ -59,7 +60,7 @@ Create a buffer from descriptor.
         queue_indices_len := len(desc.queue_indices)
         if queue_indices_len < 1
         {
-            log.verbose_error(args = {"Invalid Buffer Descriptor Queue Indices Length", desc.queue_indices}, sep = " ", location = location)
+            log.verbose_error("Invalid Buffer Descriptor Queue Indices Length", desc.queue_indices)
             return {}, false
         }
 
@@ -78,7 +79,7 @@ Create a buffer from descriptor.
         result := vk.CreateBuffer(device.handle, &info, nil, &handle)
         if result != .SUCCESS
         {
-            log.verbose_error(args = {"Fail to Create Vulkan Buffer", result}, sep = " ", location = location)
+            log.verbose_error("Fail to Create Vulkan Buffer", result)
             return {}, false
         }
 
@@ -86,7 +87,7 @@ Create a buffer from descriptor.
         buffer_requirements, r_success := buffer_get_requirements_from_handle(device, handle)
         if !r_success
         {
-            log.verbose_error(args = {"Fail to Clone Buffer Indices from Descriptor"}, sep = " ", location = location)
+            log.verbose_error("Fail to Clone Buffer Indices from Descriptor")
             vk.DestroyBuffer(device.handle, handle, nil)
             return {}, false
         }
@@ -94,7 +95,7 @@ Create a buffer from descriptor.
         buffer_queue_indices, qi_success := commons.array_clone(desc.queue_indices, allocator)
         if !qi_success
         {
-            log.verbose_error(args = {"Fail to Clone Buffer Queue Indices from Descriptor"}, sep = " ", location = location)
+            log.verbose_error("Fail to Clone Buffer Queue Indices from Descriptor")
             vk.DestroyBuffer(device.handle, handle, nil)
             return {}, false
         }
@@ -119,14 +120,14 @@ Create buffers from descriptors.
         //Checking device parameter
         if !device_is_valid(device)
         {
-            log.verbose_error(args = {"Invalid vulkan device parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan device parameter")
             return nil, false
         }
 
         //Checking descriptors parameter
         if descriptors == nil
         {
-            log.verbose_error(args = {"Invalid buffer descriptors parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid buffer descriptors parameter")
             return nil, false
         }
 
@@ -134,7 +135,7 @@ Create buffers from descriptors.
         descriptors_len := len(descriptors)
         if descriptors_len < 1
         {
-            log.verbose_error(args = {"Invalid buffer descriptors count", descriptors, descriptors_len}, sep = " ", location = location)
+            log.verbose_error("Invalid buffer descriptors count", descriptors, descriptors_len)
             return nil, false
         }
 
@@ -156,7 +157,7 @@ Create buffers from descriptors.
         success := created_buffer_count == descriptors_len
         if !success
         {
-            log.verbose_error(args = {"Failed to create all buffers, deleting the created ones", buffers}, sep = " ", location = location)
+            log.verbose_error("Failed to create all buffers, deleting the created ones", buffers)
             for i := 0; i < created_buffer_count; i += 1 do buffer_destroy(device, &buffers[i], location)
             delete(buffers, allocator)
 
@@ -175,14 +176,14 @@ Destroy single a buffer.
         //Nil device parameter
         if !device_is_valid(device)
         {
-            log.verbose_error(args = {"Invalid Vulkan Device Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Device Parameter")
             return false
         }
 
         //Nil buffer parameter
         if !buffer_is_valid(buffer)
         {
-            log.verbose_error(args = {"Invalid Vulkan Buffer Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Buffer Parameter")
             return false
         }
 
@@ -211,14 +212,14 @@ Destroy multiple a buffers.
         //Checking device parameter
         if !device_is_valid(device)
         {
-            log.verbose_error(args = {"Invalid vulkan device parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan device parameter")
             return false
         }
 
         //Checking buffers parameter
         if !buffer_is_valid(buffers)
         {
-            log.verbose_error(args = {"Invalid vulkan buffers parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan buffers parameter")
             return false
         }
 
@@ -242,14 +243,14 @@ Filter physical device memory indices that matches to the buffer requirements.
         //Nil physical device parameter
         if !physical_device_is_valid(physical_device)
         {
-            log.verbose_error(args = {"Invalid Vulkan Physical Device Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Physical Device Parameter")
             return nil, false
         }
 
         //Nil buffer parameter
         if !buffer_is_valid(buffer)
         {
-            log.verbose_error(args = {"Invalid Vulkan Buffer Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Buffer Parameter")
             return nil, false
         }
  
@@ -257,7 +258,7 @@ Filter physical device memory indices that matches to the buffer requirements.
         matches, alloc_err := make([dynamic]i32, 0, physical_device.memory_properties.memoryTypeCount, context.temp_allocator, location)
         if alloc_err != .None
         {
-            log.verbose_error(args = {"Allocate Buffer Filter Indices Matches Slice"}, sep = " ", location = location)
+            log.verbose_error("Allocate Buffer Filter Indices Matches Slice")
             return nil, false
         }
         defer delete(matches)
@@ -332,14 +333,14 @@ Filter physical device memory indices that matches to the buffers requirements.
         //Nil physical device parameter
         if !physical_device_is_valid(physical_device)
         {
-            log.verbose_error(args = {"Invalid Vulkan Physical Device Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Physical Device Parameter")
             return nil, false
         }
 
         //Nil buffer parameter
         if !buffer_is_valid(buffers)
         {
-            log.verbose_error(args = {"Invalid Vulkan Buffers Parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid Vulkan Buffers Parameter")
             return nil, false
         }
  
@@ -347,7 +348,7 @@ Filter physical device memory indices that matches to the buffers requirements.
         matches, alloc_err := make([dynamic]i32, 0, physical_device.memory_properties.memoryTypeCount, context.temp_allocator, location)
         if alloc_err != .None
         {
-            log.verbose_error(args = {"Allocate Buffer Filter Memory Type Indices Matches Slice"}, sep = " ", location = location)
+            log.verbose_error("Allocate Buffer Filter Memory Type Indices Matches Slice")
             return nil, false
         }
         defer delete(matches)
@@ -363,7 +364,7 @@ Filter physical device memory indices that matches to the buffers requirements.
         matches_len := len(matches)
         if matches_len < 1
         {
-            log.verbose_error(args = {"No Matches at Buffer Memory Type Indices Filtering"}, sep = " ", location = location)
+            log.verbose_error("No Matches at Buffer Memory Type Indices Filtering")
             return nil, false
         }
 
@@ -379,34 +380,34 @@ Bind a single buffer to memory.
         //Checking device parameter
         if !device_is_valid(device)
         {
-            log.verbose_error(args = {"Invalid vulkan device parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan device parameter")
             return false
         }
 
         //Checking device parameter
         if !memory_is_valid(memory)
         {
-            log.verbose_error(args = {"Invalid vulkan memory parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan memory parameter")
             return false
         }
 
         //Checking buffer parameter
         if !buffer_is_valid(buffer)
         {
-            log.verbose_error(args = {"Invalid vulkan buffer parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan buffer parameter")
             return false
         }
 
         //Binding
-        log.verbose_info(args = {"Binding Vulkan Buffer", buffer, "to Memory", memory, "Offset", offset}, sep = " ", location = location)
+        log.verbose_info("Binding vulkan buffer", buffer, "to memory", memory, "with offset of", offset)
         result := vk.BindBufferMemory(device.handle, buffer.handle, memory.handle, vk.DeviceSize(offset))
         if result != .SUCCESS
         {
-            log.verbose_error(args = {result, "Failed to Bind Vulkan Buffer", buffer, "to Memory", memory, "Offset", offset}, sep = " ", location = location)
+            log.verbose_error(result, "Failed to bind vulkan buffer", buffer, "to memory", memory, "with offset of", offset)
             return false
         }
 
-        log.verbose_debug(args = {"Binded Vulkan Buffer", buffer, "to Memory", memory, "Offset", offset}, sep = " ", location = location)
+        log.verbose_debug("Binded vulkan buffer", buffer, "to memory", memory, "with offset of", offset)
         return true
     }
 
@@ -416,21 +417,21 @@ Bind a single buffer to memory.
         //Checking device parameter
         if !device_is_valid(device)
         {
-            log.verbose_error(args = {"Invalid vulkan device parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan device parameter")
             return false
         }
 
         //Checking device parameter
         if !memory_is_valid(memory)
         {
-            log.verbose_error(args = {"Invalid vulkan memory parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan memory parameter")
             return false
         }
 
         //Checking buffer parameter
         if !buffer_is_valid(buffers)
         {
-            log.verbose_error(args = {"Invalid vulkan buffers parameter"}, sep = " ", location = location)
+            log.verbose_error("Invalid vulkan buffers parameter")
             return false
         }
         
@@ -438,7 +439,7 @@ Bind a single buffer to memory.
         required_size := start_offset + buffer_get_size(buffers)
         if memory.size < uint(required_size)
         {
-            log.verbose_error(args = {"Vulkan memory", memory, "cant store buffers", buffers, "Buffers required size", required_size}, sep = " ", location = location)
+            log.verbose_error("Vulkan memory", memory, "cant store buffers", buffers, "required size to store buffers", required_size, "including start offset of", start_offset)
             return false
         }
 
@@ -452,6 +453,120 @@ Bind a single buffer to memory.
             offset += cast(u64)buffer.requirements.size
         }
 
+        log.verbose_debug("Vulkan buffers", buffers, "binded to memory", memory)
+        return true
+    }
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_copy_content_single :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, content: rawptr) -> bool
+    {
+        //Checking device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error("Invalid vulkan device parameter")
+            return false
+        }
+
+        //Checking device parameter
+        if !memory_is_valid(memory)
+        {
+            log.verbose_error("Invalid vulkan memory parameter")
+            return false
+        }
+
+        //Checking buffer parameter
+        if !buffer_is_valid(buffer)
+        {
+            log.verbose_error("Invalid vulkan buffer parameter")
+            return false
+        }
+
+        //Checking content parameter
+        if content == nil
+        {
+            log.verbose_error("Invalid content pointer parameter")
+            return false
+        }
+
+        //Mapping memory
+        log.verbose_debug("Mapping vulkan memory", memory, "with offset", offset)
+        mapped_address: rawptr
+        result := vk.MapMemory(device.handle, memory.handle, vk.DeviceSize(offset), buffer.requirements.size, {}, &mapped_address)
+        if result != .SUCCESS
+        {
+            log.verbose_error(result, "Failed to map vulkan memory", memory, "with offset", offset)
+            return false
+        }
+        log.verbose_debug("Vulkan memory mapped", mapped_address, memory, " with offset", offset)
+
+        //Copying buffer to mapped memory
+        log.verbose_debug("Copying source content", content, "with size of", buffer.size, "to mapped address", mapped_address)
+        mem.copy(mapped_address, content, cast(int)buffer.size)
+        log.verbose_debug("Source content copied", content, "with size of", buffer.size, "to mapped address", mapped_address)
+
+        //Unmapping memory
+        log.verbose_debug("Unmapping vulkan memory", memory)
+        vk.UnmapMemory(device.handle, memory.handle)
+        log.verbose_debug("Vulkan memory unmapped", memory)
+        return true
+    }
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_copy_content_multiple_stacked :: proc(device: ^Device, memory: ^Memory, buffers: []Buffer, contents: []rawptr, start_offset: u64) -> bool
+    {
+        //Checking device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error("Invalid vulkan device parameter")
+            return false
+        }
+
+        //Checking device parameter
+        if !memory_is_valid(memory)
+        {
+            log.verbose_error("Invalid vulkan memory parameter")
+            return false
+        }
+
+        //Checking buffer parameter
+        if !buffer_is_valid(buffers)
+        {
+            log.verbose_error("Invalid vulkan buffers parameter")
+            return false
+        }
+
+        //Checking contents parameter
+        if contents == nil
+        {
+            log.verbose_error("Invalid contents slice parameter")
+            return false
+        }
+
+        //Checking if memory can store buffers size
+        required_size := start_offset + buffer_get_size(buffers)
+        if memory.size < uint(required_size)
+        {
+            log.verbose_error("Vulkan memory", memory, "cant store buffers", buffers, "required size to store buffers", required_size, "including start offset of", start_offset)
+            return false
+        }
+
+        //Copying contents
+        offset := start_offset
+        for i := 0; i < len(buffers); i += 1
+        {
+            buffer := &buffers[i]
+            content := contents[i]
+            copied := buffer_copy_content_single(device, memory, buffer, offset, content)
+            if !copied
+            {
+                log.verbose_error("Failed to copy content", content, " to buffer", buffer, "index", i)
+                return false
+            }
+
+            offset += cast(u64)buffer.requirements.size
+        }
+
+        log.verbose_debug("Buffers contents",  contents, "copied to buffers memory", buffers)
         return true
     }
 }

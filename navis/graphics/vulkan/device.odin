@@ -133,6 +133,9 @@ when api.EXPORT
         device.graphics_do_transfer = graphics_do_transfer
         device.graphics_do_present = graphics_do_present
         device.transfer_do_present = transfer_do_present
+        device.graphics_queues_index = desc.graphics_queue.index
+        device.transfer_queues_index = desc.transfer_queue.index
+        device.present_queues_index = desc.present_queue.index
         device.handle = handle
         return device, true
     }
