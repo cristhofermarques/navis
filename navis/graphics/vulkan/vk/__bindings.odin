@@ -20,23 +20,30 @@ when api.IMPORT
         
         @(link_prefix=PREFIX)
         library_load :: proc(location := #caller_location) -> (Library, bool) ---
-
+        
         @(link_prefix=PREFIX)
         library_unload :: proc(library: Library, location := #caller_location) -> bool ---
-
-        //Variables
-        @(link_prefix=PREFIX) _vulkan_library: dynlib.Library
-
+        
+        /* Instance */
+        @(link_prefix=PREFIX)
+        _create_instance :: proc(instance_create_info: ^InstanceCreateInfo, allocation_callbacks: ^AllocationCallbacks, instance: ^Instance) -> Result ---
+        
+        @(link_prefix=PREFIX)
+        _destroy_instance :: proc(instance: Instance, allocation_callbacks: ^AllocationCallbacks) ---
+        
+        /* Device */
+        @(link_prefix=PREFIX)
+        _create_device :: proc(physical_device: PhysicalDevice, create_info: ^DeviceCreateInfo, allocator_callbacks: ^AllocationCallbacks, device: ^Device) -> Result ---
+                
         //Loaders
-        @(link_prefix=PREFIX) is_vulkan_library_loaded :: proc() -> bool ---
-        @(link_prefix=PREFIX) get_or_load_vulkan_library :: proc() -> (dynlib.Library, bool) ---
-        @(link_prefix=PREFIX) unload_vulkan_library :: proc() -> bool ---
-        @(link_prefix=PREFIX) _create_instance :: proc(instance_create_info: ^InstanceCreateInfo, allocation_callbacks: ^AllocationCallbacks, instance: ^Instance) -> Result ---
-        @(link_prefix=PREFIX) _destroy_instance :: proc(instance: Instance, allocation_callbacks: ^AllocationCallbacks) ---
-        @(link_prefix=PREFIX) _create_device :: proc(physical_device: PhysicalDevice, create_info: ^DeviceCreateInfo, allocator_callbacks: ^AllocationCallbacks, device: ^Device) -> Result ---
-        @(link_prefix=PREFIX) load_global_procedures :: proc(vk_get_instance_proc_addr: rawptr) ---
-        @(link_prefix=PREFIX) load_instance_procedures :: proc(instance: Instance) ---
-        @(link_prefix=PREFIX) load_device_procedures :: proc(device: Device) ---
+        @(link_prefix=PREFIX)
+        global_load_procedures :: proc(address: rawptr) ---
+
+        @(link_prefix=PREFIX)
+        instance_load_procedures :: proc(instance: Instance) ---
+
+        @(link_prefix=PREFIX)
+        device_load_procedures :: proc(device: Device) ---
 
         //Global Procedures
         @(link_prefix=PREFIX) CreateInstance:                       ProcCreateInstance

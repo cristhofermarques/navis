@@ -7,9 +7,9 @@ when api.EXPORT
 {
 	import "navis:commons/log"
 
-	/*
-	Vulkan library.
-	*/
+/*
+Vulkan library.
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
 	library: Library
 
@@ -28,13 +28,16 @@ Get or loads vulkan library.
 		}
 	}
 
-    //Create instance and additionaly loads instance releated procedures, including vulkan library
+/*
+Create instance and additionaly loads instance releated procedures, including vulkan library.
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
     _create_instance :: proc(instance_create_info: ^InstanceCreateInfo, allocation_callbacks: ^AllocationCallbacks, instance: ^Instance) -> Result
     {
 		_library := library_get_or_load()
 		if !library_is_valid(_library) do return .ERROR_UNKNOWN
 
+		//Getting global vulkan loader procedure
 		VK_GET_INSTANCE_PROC_ADDR :: "vkGetInstanceProcAddr"
         get_instance_proc_addr, found := dynlib.symbol_address(_library, VK_GET_INSTANCE_PROC_ADDR)
 		if !found
@@ -42,14 +45,21 @@ Get or loads vulkan library.
 			return .ERROR_UNKNOWN
 		}
 
-        load_global_procedures(get_instance_proc_addr)
+		//Loading global vulkan procedures
+        global_load_procedures(get_instance_proc_addr)
 
+		//Creating vulkan instance
         result := CreateInstance(instance_create_info, allocation_callbacks, instance)
-        if result == .SUCCESS do load_instance_procedures(instance^)
+		
+		//Loading vulkan instance procedures
+        if result == .SUCCESS do instance_load_procedures(instance^)
+
         return result
     }
     
-    //Destroy instance and unload vulkan library
+/*
+Destroy a vulkan instance and unload library.
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
     _destroy_instance :: proc(instance: Instance, allocation_callbacks: ^AllocationCallbacks)
     {
@@ -60,22 +70,32 @@ Get or loads vulkan library.
 			library = nil
 		}
     }
-    
-    //Create device and additionaly loads device releated procedures
+
+/*
+Create device and additionaly loads device releated procedures.
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
     _create_device :: proc(physical_device: PhysicalDevice, create_info: ^DeviceCreateInfo, allocator_callbacks: ^AllocationCallbacks, device: ^Device) -> Result
     {
         if CreateDevice == nil do return .ERROR_UNKNOWN
+
+		//Creating vulkan device
         result := CreateDevice(physical_device, create_info, allocator_callbacks, device)
-        if result == .SUCCESS do load_device_procedures(device^)
+
+		//Loading vulkan device procedures
+        if result == .SUCCESS do device_load_procedures(device^)
+
         return result
     }
 
-    //Load global procedures
+/*
+Load vulkan global procedures.
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
-	load_global_procedures :: proc(vk_get_instance_proc_addr: rawptr)
+	global_load_procedures :: proc(address: rawptr)
     {
-		GetInstanceProcAddr = auto_cast vk_get_instance_proc_addr
+		if address == nil do return
+		GetInstanceProcAddr = auto_cast address
 
 		CreateInstance                       = auto_cast GetInstanceProcAddr(nil, "vkCreateInstance")
 		DebugUtilsMessengerCallbackEXT       = auto_cast GetInstanceProcAddr(nil, "vkDebugUtilsMessengerCallbackEXT")
@@ -86,10 +106,14 @@ Get or loads vulkan library.
 		GetInstanceProcAddr                  = auto_cast GetInstanceProcAddr(nil, "vkGetInstanceProcAddr")
 	}
 
-    //Load instance procedures
+/*
+Load vulkan instance procedures.
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
-	load_instance_procedures :: proc(instance: Instance)
+	instance_load_procedures :: proc(instance: Instance)
 	{
+		if instance == nil || GetInstanceProcAddr == nil do return
+
 		AcquireDrmDisplayEXT                                            = auto_cast GetInstanceProcAddr(instance, "vkAcquireDrmDisplayEXT")
 		AcquireWinrtDisplayNV                                           = auto_cast GetInstanceProcAddr(instance, "vkAcquireWinrtDisplayNV")
 		CreateDebugReportCallbackEXT                                    = auto_cast GetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT")
@@ -592,10 +616,14 @@ Get or loads vulkan library.
 		WriteAccelerationStructuresPropertiesKHR        = auto_cast GetInstanceProcAddr(instance, "vkWriteAccelerationStructuresPropertiesKHR")
 	}
 
-    //Load device procedures
+/*
+Load vulkan device procedures.
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
-	load_device_procedures :: proc(device: Device)
+	device_load_procedures :: proc(device: Device)
 	{
+		if device == nil || GetDeviceProcAddr == nil do return
+
 		AcquireFullScreenExclusiveModeEXT               = auto_cast GetDeviceProcAddr(device, "vkAcquireFullScreenExclusiveModeEXT")
 		AcquireNextImage2KHR                            = auto_cast GetDeviceProcAddr(device, "vkAcquireNextImage2KHR")
 		AcquireNextImageKHR                             = auto_cast GetDeviceProcAddr(device, "vkAcquireNextImageKHR")
@@ -1012,13 +1040,5 @@ Get or loads vulkan library.
 		WaitSemaphores                                  = auto_cast GetDeviceProcAddr(device, "vkWaitSemaphores")
 		WaitSemaphoresKHR                               = auto_cast GetDeviceProcAddr(device, "vkWaitSemaphoresKHR")
 		WriteAccelerationStructuresPropertiesKHR        = auto_cast GetDeviceProcAddr(device, "vkWriteAccelerationStructuresPropertiesKHR")
-	}
-
-	@(private)
-	load_procedures :: proc
-	{
-		load_global_procedures,
-		load_instance_procedures,
-		load_device_procedures,
 	}
 }
