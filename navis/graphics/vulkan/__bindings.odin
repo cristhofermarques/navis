@@ -154,10 +154,16 @@ when api.IMPORT
         buffer_get_requirements_from_handle :: proc(device: ^Device, buffer: vk.Buffer, location := #caller_location) -> (vk.MemoryRequirements, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        buffer_create_from_descriptor :: proc(device: ^Device, desc: ^Buffer_Descriptor, allocator := context.allocator, location := #caller_location) -> (Buffer, bool) #optional_ok ---
+        buffer_create_from_descriptor_single :: proc(device: ^Device, desc: ^Buffer_Descriptor, allocator := context.allocator, location := #caller_location) -> (Buffer, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        buffer_destroy :: proc(device: ^Device, buffer: ^Buffer, location := #caller_location) -> bool ---
+        buffer_create_from_descriptor_multiple :: proc(device: ^Device, descriptors: []Buffer_Descriptor, allocator := context.allocator, location := #caller_location) -> ([]Buffer, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        buffer_destroy_single :: proc(device: ^Device, buffer: ^Buffer, location := #caller_location) -> bool ---
+
+        @(link_prefix=PREFIX)
+        buffer_destroy_multiple :: proc(device: ^Device, buffers: []Buffer, location := #caller_location) -> bool ---
 
         @(link_prefix=PREFIX)
         buffer_filter_memory_types_single :: proc(physical_device: ^Physical_Device, buffer: ^Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool) ---

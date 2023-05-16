@@ -39,7 +39,7 @@ Get buffer memory requirements from a handle.
 Create a buffer from descriptor.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    buffer_create_from_descriptor :: proc(device: ^Device, desc: ^Buffer_Descriptor, allocator := context.allocator, location := #caller_location) -> (Buffer, bool) #optional_ok
+    buffer_create_from_descriptor_single :: proc(device: ^Device, desc: ^Buffer_Descriptor, allocator := context.allocator, location := #caller_location) -> (Buffer, bool) #optional_ok
     {
         //Nil device parameter
         if !device_is_valid(device)
@@ -111,10 +111,66 @@ Create a buffer from descriptor.
     }
 
 /*
-Destroy a buffer.
+Create buffers from descriptors.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    buffer_destroy :: proc(device: ^Device, buffer: ^Buffer, location := #caller_location) -> bool
+    buffer_create_from_descriptor_multiple :: proc(device: ^Device, descriptors: []Buffer_Descriptor, allocator := context.allocator, location := #caller_location) -> ([]Buffer, bool) #optional_ok
+    {
+        //Checking device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error(args = {"Invalid vulkan device parameter"}, sep = " ", location = location)
+            return nil, false
+        }
+
+        //Checking descriptors parameter
+        if descriptors == nil
+        {
+            log.verbose_error(args = {"Invalid buffer descriptors parameter"}, sep = " ", location = location)
+            return nil, false
+        }
+
+        //Checking descriptors length
+        descriptors_len := len(descriptors)
+        if descriptors_len < 1
+        {
+            log.verbose_error(args = {"Invalid buffer descriptors count", descriptors, descriptors_len}, sep = " ", location = location)
+            return nil, false
+        }
+
+        //Allocating buffers slice
+        buffers, buffer_alloc_err := make([]Buffer, descriptors_len, allocator)
+
+        //Creating buffers
+        created_buffer_count := 0
+        for i := 0; i < descriptors_len; i += 1
+        {
+            descriptor := &descriptors[i]
+            buffer, created := buffer_create(device, descriptor, allocator, location)
+            if !created do break
+            buffers[i] = buffer
+            created_buffer_count += 1
+        }
+
+        //Checking buffers
+        success := created_buffer_count == descriptors_len
+        if !success
+        {
+            log.verbose_error(args = {"Failed to create all buffers, deleting the created ones", buffers}, sep = " ", location = location)
+            for i := 0; i < created_buffer_count; i += 1 do buffer_destroy(device, &buffers[i], location)
+            delete(buffers, allocator)
+
+            return nil, false
+        }
+
+        return buffers, true
+    }
+
+/*
+Destroy single a buffer.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_destroy_single :: proc(device: ^Device, buffer: ^Buffer, location := #caller_location) -> bool
     {
         //Nil device parameter
         if !device_is_valid(device)
@@ -141,6 +197,37 @@ Destroy a buffer.
         {
             delete(buffer.queue_indices, allocator)
             buffer.queue_indices = nil
+        }
+
+        return true
+    }
+
+/*
+Destroy multiple a buffers.
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_destroy_multiple :: proc(device: ^Device, buffers: []Buffer, location := #caller_location) -> bool
+    {
+        //Checking device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error(args = {"Invalid vulkan device parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Checking buffers parameter
+        if !buffer_is_valid(buffers)
+        {
+            log.verbose_error(args = {"Invalid vulkan buffers parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Destroying buffers
+        for i := 0; i < len(buffers); i += 1
+        {
+            buffer := &buffers[i]
+            destroyed := buffer_destroy_single(device, buffer, location)
+            if !destroyed do return false
         }
 
         return true

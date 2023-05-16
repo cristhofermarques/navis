@@ -32,6 +32,21 @@ buffer_is_valid :: proc{
     buffer_is_valid_multiple,
 }
 
+buffer_create :: proc{
+    buffer_create_from_descriptor_single,
+    buffer_create_from_descriptor_multiple,
+}
+
+buffer_destroy :: proc{
+    buffer_destroy_single,
+    buffer_destroy_multiple,
+}
+
+buffer_filter_memory_types :: proc{
+    buffer_filter_memory_types_single,
+    buffer_filter_memory_types_multiple,
+}
+
 /*
 Checks if buffer handle is valid.
 */
@@ -52,16 +67,4 @@ buffer_is_valid_multiple :: #force_inline proc(buffers: []Buffer) -> bool
     }
 
     return true
-}
-
-/*
-Create a vulkan buffer.
-*/
-buffer_create :: proc{
-    buffer_create_from_descriptor,
-}
-
-buffer_filter_memory_types :: proc{
-    buffer_filter_memory_types_single,
-    buffer_filter_memory_types_multiple,
 }
