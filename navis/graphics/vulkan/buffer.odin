@@ -371,29 +371,29 @@ Filter physical device memory indices that matches to the buffers requirements.
     }
 
 /*
-Bind vulkan buffer to memory.
+Bind a single buffer to memory.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    buffer_bind_memory :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, location := #caller_location) -> bool
+    buffer_bind_memory_single :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, location := #caller_location) -> bool
     {
-        //Nil device parameter
+        //Checking device parameter
         if !device_is_valid(device)
         {
-            log.verbose_error(args = {"Invalid Vulkan Device Parameter"}, sep = " ", location = location)
+            log.verbose_error(args = {"Invalid vulkan device parameter"}, sep = " ", location = location)
             return false
         }
 
-        //Nil device parameter
+        //Checking device parameter
         if !memory_is_valid(memory)
         {
-            log.verbose_error(args = {"Invalid Vulkan Memory Parameter"}, sep = " ", location = location)
+            log.verbose_error(args = {"Invalid vulkan memory parameter"}, sep = " ", location = location)
             return false
         }
 
-        //Nil buffer parameter
+        //Checking buffer parameter
         if !buffer_is_valid(buffer)
         {
-            log.verbose_error(args = {"Invalid Vulkan Buffer Parameter"}, sep = " ", location = location)
+            log.verbose_error(args = {"Invalid vulkan buffer parameter"}, sep = " ", location = location)
             return false
         }
 
@@ -407,6 +407,51 @@ Bind vulkan buffer to memory.
         }
 
         log.verbose_debug(args = {"Binded Vulkan Buffer", buffer, "to Memory", memory, "Offset", offset}, sep = " ", location = location)
+        return true
+    }
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_bind_memory_multiple_stacked :: proc(device: ^Device, memory: ^Memory, buffers: []Buffer, start_offset: u64, location := #caller_location) -> bool
+    {
+        //Checking device parameter
+        if !device_is_valid(device)
+        {
+            log.verbose_error(args = {"Invalid vulkan device parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Checking device parameter
+        if !memory_is_valid(memory)
+        {
+            log.verbose_error(args = {"Invalid vulkan memory parameter"}, sep = " ", location = location)
+            return false
+        }
+
+        //Checking buffer parameter
+        if !buffer_is_valid(buffers)
+        {
+            log.verbose_error(args = {"Invalid vulkan buffers parameter"}, sep = " ", location = location)
+            return false
+        }
+        
+        //Checking if memory can store buffers size
+        required_size := start_offset + buffer_get_size(buffers)
+        if memory.size < uint(required_size)
+        {
+            log.verbose_error(args = {"Vulkan memory", memory, "cant store buffers", buffers, "Buffers required size", required_size}, sep = " ", location = location)
+            return false
+        }
+
+        //Binding buffers
+        offset := start_offset
+        for i := 0; i < len(buffers); i += 1
+        {
+            buffer := &buffers[i]
+            binded := buffer_bind_memory_single(device, memory, buffer, offset, location)
+            if !binded do return false
+            offset += cast(u64)buffer.requirements.size
+        }
+
         return true
     }
 }

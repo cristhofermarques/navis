@@ -172,7 +172,10 @@ when api.IMPORT
         buffer_filter_memory_types_multiple :: proc(physical_device: ^Physical_Device, buffers: []Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool) ---
 
         @(link_prefix=PREFIX)
-        buffer_bind_memory :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, location := #caller_location) -> bool ---
+        buffer_bind_memory_single :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, location := #caller_location) -> bool ---
+
+        @(link_prefix=PREFIX)
+        buffer_bind_memory_multiple_stacked :: proc(device: ^Device, memory: ^Memory, buffers: []Buffer, start_offset: u64, location := #caller_location) -> bool ---
 
         /* Memory */
         @(link_prefix=PREFIX)
