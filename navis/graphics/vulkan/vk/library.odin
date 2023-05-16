@@ -14,15 +14,15 @@ when api.EXPORT
         when ODIN_OS == .Windows do name = "vulkan-1.dll"
         when ODIN_OS == .Linux   do name = "vulkan.so.1"
 
-        log.verbose_info(args = {"Loading Vulkan Library", name}, sep = " ", location = location)
+        log.verbose_info(args = {"Loading vulkan library", name}, sep = " ", location = location)
         library, success := dynlib.load_library(name)
         if !success
         {
-            log.verbose_error(args = {"Failed to Load Vulkan Library", name}, sep = " ", location = location)
+            log.verbose_error(args = {"Failed to load vulkan library", name}, sep = " ", location = location)
             return nil, false
         }
 
-        log.verbose_info(args = {"Loaded Vulkan Library", name, library}, sep = " ", location = location)
+        log.verbose_info(args = {"Vulkan library Loaded", name, library}, sep = " ", location = location)
         return library, true
     }
 
@@ -31,18 +31,18 @@ when api.EXPORT
     {
         if !library_is_valid(library)
         {
-            log.verbose_error(args = {"Invalid Vulkan Library Parameter"}, sep = " ", location = location)
+            log.verbose_error(args = {"Invalid vulkan library parameter"}, sep = " ", location = location)
             return false
         }
 
         unloaded := dynlib.unload_library(library)
         if !unloaded
         {
-            log.verbose_error(args = {"Failed to Unload Vulkan Library", library}, sep = " ", location = location)
+            log.verbose_error(args = {"Failed to unload vulkan library", library}, sep = " ", location = location)
             return false
         }
         
-        log.verbose_info(args = {"Unloaded Vulkan Library"}, sep = " ", location = location)
+        log.verbose_info(args = {"Vulkan library unloaded"}, sep = " ", location = location)
         return true
     }
 }
