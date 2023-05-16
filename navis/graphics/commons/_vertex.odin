@@ -10,9 +10,9 @@ Vertex_Attribute :: enum
     Vector4_F32 = size_of(commons.Vector4_F32),
 }
 
-vertex_attribute_get_size :: #force_inline proc(attribute: Vertex_Attribute) -> uint
+vertex_attribute_get_size :: #force_inline proc(attribute: Vertex_Attribute) -> u64
 {
-    return cast(uint)attribute
+    return u64(attribute)
 }
 
 Vertex_Binding_Rate :: enum

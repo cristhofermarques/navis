@@ -3,18 +3,18 @@ package vulkan
 import "vk"
 import "navis:graphics/commons"
 
-Vertex_Input_Binding_Descriptor :: struct
+Vertex_Binding_Descriptor :: struct
 {
+    location_offset: u32,
     binding: commons.Vertex_Binding,
-    start_location: i32,
 }
 
-Vertex_Input_Descriptor :: struct
+Vertex_Descriptor :: struct
 {
-    bindings: []Vertex_Input_Binding_Descriptor,
+    bindings: []Vertex_Binding_Descriptor,
 }
 
-vertex_attribute_get_location_offset :: #force_inline proc(attribute: commons.Vertex_Attribute) -> uint
+vertex_attribute_get_location_offset :: #force_inline proc(attribute: commons.Vertex_Attribute) -> u32
 {
     switch attribute
     {

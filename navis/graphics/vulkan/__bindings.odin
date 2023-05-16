@@ -192,8 +192,7 @@ when api.IMPORT
         
         /* Vertex Input */
         @(link_prefix=PREFIX)
-        vertex_input_compose_stage :: proc(desc: ^Vertex_Input_Descriptor) ---
-
+        vertex_input_compose_state :: proc(desc: ^Vertex_Descriptor, allocator := context.allocator) -> (vk.PipelineVertexInputStateCreateInfo, []vk.VertexInputBindingDescription, []vk.VertexInputAttributeDescription, bool) ---
 
         /* Context */
         @(link_prefix=PREFIX)
