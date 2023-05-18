@@ -170,6 +170,9 @@ when api.IMPORT
 
         @(link_prefix=PREFIX)
         buffer_filter_memory_types_multiple :: proc(physical_device: ^Physical_Device, buffers: []Buffer, property_flags: vk.MemoryPropertyFlags, allocator := context.allocator, location := #caller_location) -> ([]i32, bool) ---
+        
+        @(link_prefix=PREFIX)
+        buffer_filter_memory_types_multiple_first :: proc(physical_device: ^Physical_Device, buffers: []Buffer, property_flags: vk.MemoryPropertyFlags) -> (i32, bool) ---
 
         @(link_prefix=PREFIX)
         buffer_bind_memory_single :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, location := #caller_location) -> bool ---
@@ -211,8 +214,18 @@ when api.IMPORT
         /* Shader Module */
         @(link_prefix=PREFIX)
         shader_module_create_from_data :: proc(context_: ^Context, data: []byte, location := #caller_location) -> (vk.ShaderModule, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         shader_module_destroy :: proc(context_: ^Context, module: vk.ShaderModule, location := #caller_location) -> bool ---
+        
+        /* Buffer Pack */
+        @(link_prefix=PREFIX)
+        buffer_pack_create_from_descriptor_single :: proc(context_: ^Context, descriptor: ^Buffer_Pack_Descriptor, allocator := context.allocator) -> (Buffer_Pack, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        buffer_pack_destroy :: proc(context_: ^Context, buffer_pack: ^Buffer_Pack) -> bool ---
+
+        @(link_prefix=PREFIX)
+        buffer_pack_upload_content_multiple_stacked :: proc(context_: ^Context, buffer_pack: ^Buffer_Pack, contents: []rawptr, start_offset: u64 = 0) -> bool ---
     }
 }

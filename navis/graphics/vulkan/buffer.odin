@@ -371,6 +371,15 @@ Filter physical device memory indices that matches to the buffers requirements.
         return commons.slice_from_dynamic(matches, allocator)
     }
 
+    @(export=api.SHARED, link_prefix=PREFIX)
+    buffer_filter_memory_types_multiple_first :: proc(physical_device: ^Physical_Device, buffers: []Buffer, property_flags: vk.MemoryPropertyFlags) -> (i32, bool)
+    {
+        indices, success := buffer_filter_memory_types_multiple(physical_device, buffers, property_flags, context.temp_allocator)
+        if !success do return -1, false
+        defer delete(indices, context.temp_allocator)
+        return indices[0], true
+    }
+
 /*
 Bind a single buffer to memory.
 */
@@ -436,21 +445,23 @@ Bind a single buffer to memory.
         }
         
         //Checking if memory can store buffers size
-        required_size := start_offset + buffer_get_size(buffers)
-        if memory.size < uint(required_size)
+        required_size := start_offset + buffer_get_required_size(buffers)
+        if memory.size < required_size
         {
             log.verbose_error("Vulkan memory", memory, "cant store buffers", buffers, "required size to store buffers", required_size, "including start offset of", start_offset)
             return false
         }
 
         //Binding buffers
+        required_alignment := buffer_get_required_alignment(buffers)
         offset := start_offset
         for i := 0; i < len(buffers); i += 1
         {
             buffer := &buffers[i]
             binded := buffer_bind_memory_single(device, memory, buffer, offset, location)
             if !binded do return false
-            offset += cast(u64)buffer.requirements.size
+            buffer_required_size := buffer_get_required_size(buffer, required_alignment)
+            offset += buffer_required_size
         }
 
         log.verbose_debug("Vulkan buffers", buffers, "binded to memory", memory)
@@ -543,8 +554,8 @@ Bind a single buffer to memory.
         }
 
         //Checking if memory can store buffers size
-        required_size := start_offset + buffer_get_size(buffers)
-        if memory.size < uint(required_size)
+        required_size := start_offset + buffer_get_required_size(buffers)
+        if memory.size < required_size
         {
             log.verbose_error("Vulkan memory", memory, "cant store buffers", buffers, "required size to store buffers", required_size, "including start offset of", start_offset)
             return false
