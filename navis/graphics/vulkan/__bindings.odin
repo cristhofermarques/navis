@@ -188,10 +188,10 @@ when api.IMPORT
 
         /* Memory */
         @(link_prefix=PREFIX)
-        memory_create_from_descriptor :: proc(device: ^Device, desc: ^Memory_Descriptor, location := #caller_location) -> (Memory, bool) #optional_ok ---
+        memory_create_from_descriptor :: proc(device: ^Device, descriptor: ^Memory_Descriptor) -> (Memory, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        memory_destroy :: proc(device: ^Device, memory: ^Memory, location := #caller_location) -> bool ---
+        memory_destroy :: proc(device: ^Device, memory: ^Memory) -> bool ---
         
         /* Vertex Input */
         @(link_prefix=PREFIX)

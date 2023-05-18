@@ -3,30 +3,40 @@ package vulkan
 import "vk"
 import "core:runtime"
 
-Buffer_Pack_Buffer_Descriptor :: struct
+/*
+Vulkan buffer pack element descriptor.
+*/
+Buffer_Pack_Element_Descriptor :: struct
 {
     flags: vk.BufferCreateFlags,
     usage: vk.BufferUsageFlags,
-    content: rawptr,
     size: uint,
 }
 
-
+/*
+Vulkan buffer pack descriptor.
+*/
 Buffer_Pack_Descriptor :: struct
 {
     property_flags: vk.MemoryPropertyFlags,
     queue_indices: []i32,
-    buffers: []Buffer_Pack_Buffer_Descriptor,
+    elements: []Buffer_Pack_Element_Descriptor,
 }
 
-buffer_pack_descriptor_is_valid :: #force_inline proc(descriptor: ^Buffer_Pack_Descriptor) -> bool
+/*
+Checks if vulkan buffer pack descriptor is valid.
+*/
+buffer_pack_descriptor_is_valid :: #force_inline proc "contextless" (descriptor: ^Buffer_Pack_Descriptor) -> bool
 {
     if descriptor == nil do return false
     if descriptor.queue_indices == nil || len(descriptor.queue_indices) < 1 do return false
-    if descriptor.buffers == nil || len(descriptor.buffers) < 1 do return false
+    if descriptor.elements == nil || len(descriptor.elements) < 1 do return false
     return true
 }
 
+/*
+Vulkan buffer pack.
+*/
 Buffer_Pack :: struct
 {
     allocator: runtime.Allocator,
@@ -37,10 +47,17 @@ Buffer_Pack :: struct
     buffers: []Buffer,
 }
 
-buffer_pack_is_valid :: #force_inline proc(buffer_pack: ^Buffer_Pack) -> bool
+/*
+Checks if vulkan buffer pack is valid.
+*/
+buffer_pack_is_valid :: #force_inline proc "contextless" (buffer_pack: ^Buffer_Pack) -> bool
 {
     if buffer_pack == nil do return false
     if !buffer_is_valid(buffer_pack.buffers) do return false
     if !memory_is_valid(&buffer_pack.memory) do return false
     return true
+}
+
+buffer_pack_upload_content :: proc{
+    buffer_pack_upload_content_multiple_stacked,
 }
