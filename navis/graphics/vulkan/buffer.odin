@@ -469,7 +469,7 @@ Bind a single buffer to memory.
     }
 
     @(export=api.SHARED, link_prefix=PREFIX)
-    buffer_copy_content_single :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, content: rawptr) -> bool
+    buffer_upload_content_single :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, content: rawptr) -> bool
     {
         //Checking device parameter
         if !device_is_valid(device)
@@ -523,7 +523,7 @@ Bind a single buffer to memory.
     }
 
     @(export=api.SHARED, link_prefix=PREFIX)
-    buffer_copy_content_multiple_stacked :: proc(device: ^Device, memory: ^Memory, buffers: []Buffer, contents: []rawptr, start_offset: u64) -> bool
+    buffer_upload_content_multiple_stacked :: proc(device: ^Device, memory: ^Memory, buffers: []Buffer, contents: []rawptr, start_offset: u64) -> bool
     {
         //Checking device parameter
         if !device_is_valid(device)
@@ -567,7 +567,7 @@ Bind a single buffer to memory.
         {
             buffer := &buffers[i]
             content := contents[i]
-            copied := buffer_copy_content_single(device, memory, buffer, offset, content)
+            copied := buffer_upload_content_single(device, memory, buffer, offset, content)
             if !copied
             {
                 log.verbose_error("Failed to copy content", content, " to buffer", buffer, "index", i)

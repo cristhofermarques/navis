@@ -64,9 +64,9 @@ buffer_get_required_size :: proc{
     buffer_get_required_size_multiple_aligned,
 }
 
-buffer_copy_content :: proc{
-    buffer_copy_content_single,
-    buffer_copy_content_multiple_stacked,
+buffer_upload_content :: proc{
+    buffer_upload_content_single,
+    buffer_upload_content_multiple_stacked,
 }
 
 /*

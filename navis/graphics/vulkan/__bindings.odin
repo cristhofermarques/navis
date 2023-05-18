@@ -181,10 +181,10 @@ when api.IMPORT
         buffer_bind_memory_multiple_stacked :: proc(device: ^Device, memory: ^Memory, buffers: []Buffer, start_offset: u64, location := #caller_location) -> bool ---
         
         @(link_prefix=PREFIX)
-        buffer_copy_content_single :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, data: rawptr) -> bool ---
+        buffer_upload_content_single :: proc(device: ^Device, memory: ^Memory, buffer: ^Buffer, offset: u64, data: rawptr) -> bool ---
 
         @(link_prefix=PREFIX)
-        buffer_copy_content_multiple_stacked :: proc(device: ^Device, memory: ^Memory, buffers: []Buffer, contents: []rawptr, start_offset: u64) -> bool ---
+        buffer_upload_content_multiple_stacked :: proc(device: ^Device, memory: ^Memory, buffers: []Buffer, contents: []rawptr, start_offset: u64) -> bool ---
 
         /* Memory */
         @(link_prefix=PREFIX)

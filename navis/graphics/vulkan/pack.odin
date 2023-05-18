@@ -141,6 +141,7 @@ Destroy a single buffer pack.
 
 /*
 Upload content to buffer pack buffers.
+* Uses memory mapping.
 * Stack content upload.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
@@ -170,6 +171,6 @@ Upload content to buffer pack buffers.
             return false
         }
 
-        return buffer_copy_content_multiple_stacked(&context_.device, &buffer_pack.memory, buffer_pack.buffers, contents, start_offset)
+        return buffer_upload_content_multiple_stacked(&context_.device, &buffer_pack.memory, buffer_pack.buffers, contents, start_offset)
     }
 }
