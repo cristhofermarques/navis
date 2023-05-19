@@ -1,62 +1,77 @@
 @echo off
 
-set binaries_directory=.binaries
-set build_mode_directory=release
-set build_arch_directory=amd64
-set odin_build_target=-target:windows_amd64
-set odin_build_debug=
-set build_verbose=false
+set SOURCE_DIRECTORY=navis
+set OUTPUT_LIBRARY_NAME=navis
+set OUTPUT_LIBRARY_EXTENSION=.dll
+
+set MAJOR_VERSION=2023
+set MINOR_VERSION=5
+set PATCH_VERSION=0
+
+set BINARIES_DIRECTORY=.binaries
+
+set BUILD_TARGET=windows_amd64
+set BUILD_KIND=shared
+set BUILD_DEBUG=false
+set BUILD_VERBOSE=false
+
+set BUILD_OS_DIRECTORY_NAME=windows
+set BUILD_KIND_DIRECTORY_NAME=shared
+set BUILD_MODE_DIRECTORY_NAME=release
+set BUILD_ARCH_DIRECTORY_NAME=amd64
 
 for %%a in (%*) do (
 
     if %%a==-arch:i386 (
-        set build_arch_directory=i386
-        set odin_build_target=-target:windows_i386
+        set BUILD_TARGET=windows_i386
+        set BUILD_ARCH_DIRECTORY_NAME=i386
     )
 
     if %%a==-arch:amd64 (
-        set build_arch_directory=amd64
-        set odin_build_target=-target:windows_amd64
+        set BUILD_TARGET=windows_amd64
+        set BUILD_ARCH_DIRECTORY_NAME=amd64
     )
 
     if %%a==-mode:debug (
-        set build_mode_directory=debug
-        set odin_build_debug=-debug
+        set BUILD_DEBUG=true
+        set BUILD_MODE_DIRECTORY_NAME=debug
     )
 
     if %%a==-mode:release (
-        set build_mode_directory=release
-        set odin_build_debug=
+        set BUILD_DEBUG=false
+        set BUILD_MODE_DIRECTORY_NAME=release
     )
 
     if %%a==-verbose (
-        set build_verbose=true
+        set BUILD_VERBOSE=true
     )
 )
 
-set build_path=%binaries_directory%\windows\shared
-set build_path=%build_path%\%build_arch_directory%
-set build_path=%build_path%\%build_mode_directory%
+set BUILD_DIRECTORY=%BINARIES_DIRECTORY%
+set BUILD_DIRECTORY=%BUILD_DIRECTORY%\%BUILD_OS_DIRECTORY_NAME%
+set BUILD_DIRECTORY=%BUILD_DIRECTORY%\%BUILD_KIND_DIRECTORY_NAME%
+set BUILD_DIRECTORY=%BUILD_DIRECTORY%\%BUILD_ARCH_DIRECTORY_NAME%
+set BUILD_DIRECTORY=%BUILD_DIRECTORY%\%BUILD_MODE_DIRECTORY_NAME%
 
-set library_path=%build_path%\navis.dll
+set OUTPUT_LIBRARY_PATH=%BUILD_DIRECTORY%\%OUTPUT_LIBRARY_NAME%%OUTPUT_LIBRARY_EXTENSION%
 
-set build_command=build navis -build-mode:shared
-set build_command=%build_command% %odin_build_debug%
-set build_command=%build_command% %odin_build_target%
-set build_command=%build_command% %odin_build_mode%
-set build_command=%build_command% -define:NAVIS_API_SHARED=true
-set build_command=%build_command% -define:NAVIS_API_EXPORT=true
-set build_command=%build_command% -define:NAVIS_API_VERBOSE=%build_verbose%
-set build_command=%build_command% -define:NAVIS_API_VERSION_MAJOR=23
-set build_command=%build_command% -define:NAVIS_API_VERSION_MINOR=5
-set build_command=%build_command% -define:NAVIS_API_VERSION_PATCH=0
-set build_command=%build_command% -collection:navis=navis
-set build_command=%build_command% -collection:binaries=%build_path%
-set build_command=%build_command% -out:%library_path%
+set BUILD_COMMAND=build
+set BUILD_COMMAND=%BUILD_COMMAND% %SOURCE_DIRECTORY%
+set BUILD_COMMAND=%BUILD_COMMAND% -build-mode:%BUILD_KIND%
+if %BUILD_DEBUG%==true ( set BUILD_COMMAND=%BUILD_COMMAND% -debug)
+if %BUILD_KIND%==shared ( set BUILD_COMMAND=%BUILD_COMMAND% -define:NAVIS_API_SHARED=true)
+if %BUILD_KIND%==shared ( set BUILD_COMMAND=%BUILD_COMMAND% -define:NAVIS_API_EXPORT=true)
+set BUILD_COMMAND=%BUILD_COMMAND% -define:NAVIS_API_VERBOSE=%BUILD_VERBOSE%
+set BUILD_COMMAND=%BUILD_COMMAND% -define:NAVIS_API_VERSION_MAJOR=%MAJOR_VERSION%
+set BUILD_COMMAND=%BUILD_COMMAND% -define:NAVIS_API_VERSION_MINOR=%MINOR_VERSION%
+set BUILD_COMMAND=%BUILD_COMMAND% -define:NAVIS_API_VERSION_PATCH=%PATCH_VERSION%
+set BUILD_COMMAND=%BUILD_COMMAND% -collection:%OUTPUT_LIBRARY_NAME%=%SOURCE_DIRECTORY%
+set BUILD_COMMAND=%BUILD_COMMAND% -collection:binaries=%BUILD_DIRECTORY%
+set BUILD_COMMAND=%BUILD_COMMAND% -out:%OUTPUT_LIBRARY_PATH%
 
-if not exist "%build_path%" (
-    mkdir %build_path%
+if not exist "%BUILD_DIRECTORY%" (
+    mkdir %BUILD_DIRECTORY%
 )
 
-@echo    Building os:windows kind:shared arch:%build_arch_directory% mode:%build_mode_directory% verbose:%build_verbose%
-@odin %build_command%
+@echo    Building os:%BUILD_OS_DIRECTORY_NAME% kind:%BUILD_KIND_DIRECTORY_NAME% arch:%BUILD_ARCH_DIRECTORY_NAME% mode:%BUILD_MODE_DIRECTORY_NAME% verbose:%BUILD_VERBOSE%
+@odin %BUILD_COMMAND%
