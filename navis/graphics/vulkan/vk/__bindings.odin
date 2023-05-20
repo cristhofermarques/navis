@@ -19,10 +19,10 @@ when api.IMPORT
         library: Library
         
         @(link_prefix=PREFIX)
-        library_load :: proc(location := #caller_location) -> (Library, bool) ---
+        library_load :: proc() -> (Library, bool) ---
         
         @(link_prefix=PREFIX)
-        library_unload :: proc(library: Library, location := #caller_location) -> bool ---
+        library_unload :: proc() -> bool ---
         
         /* Instance */
         @(link_prefix=PREFIX)

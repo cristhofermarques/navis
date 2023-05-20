@@ -17,7 +17,7 @@ Create a vulkan context.
         
         success: bool
         instance: Instance
-        instance, success = instance_create(&desc.instance, allocator, location)
+        instance, success = instance_create(&desc.instance)
         if log.verbose_fail_error(!success, "create vulkan instance for context", location) do return {}, false
         
         debugger: Debugger
@@ -26,7 +26,7 @@ Create a vulkan context.
             debugger, success = debugger_create(&instance, &desc.debugger, allocator, location)
             if log.verbose_fail_error(!success, "create vulkan debugger for context", location)
             {
-                instance_destroy(&instance, location)
+                instance_destroy(&instance)
                 return {}, false
             }
         }
@@ -38,7 +38,7 @@ Create a vulkan context.
         if log.verbose_fail_error(!success, "filter vulkan physical device for context", location)
         {
             when ODIN_DEBUG do debugger_destroy(&instance, &debugger, location)
-            instance_destroy(&instance, location)
+            instance_destroy(&instance)
             return {}, false
         }
         
@@ -59,7 +59,7 @@ Create a vulkan context.
         if log.verbose_fail_error(!success, "create vulkan device for context", location)
         {
             when ODIN_DEBUG do debugger_destroy(&instance, &debugger, location)
-            instance_destroy(&instance, location)
+            instance_destroy(&instance)
             return {}, false
         }
 
@@ -86,7 +86,7 @@ Destroy a vulkan context.
         queues_info_delete(&context_.queues_info, location)
         physical_device_delete(&context_.physical_device)
         when ODIN_DEBUG do debugger_destroy(&context_.instance, &context_.debugger, location)
-        instance_destroy(&context_.instance, location)
+        instance_destroy(&context_.instance)
         return true
     }
 }

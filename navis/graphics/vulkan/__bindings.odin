@@ -18,13 +18,13 @@ when api.IMPORT
     {
         /* Instance */
         @(link_prefix=PREFIX)
-        instance_create_from_descriptor :: proc(desc: ^Instance_Descriptor, allocator := context.allocator, location := #caller_location) -> (Instance, bool) #optional_ok ---
+        instance_create_from_descriptor :: proc(descriptor: ^Instance_Descriptor) -> (Instance, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
         instance_create_from_parameters :: proc(app_name: cstring, app_version, api_version: u32, extensions, layers: []cstring, allocator := context.allocator, location := #caller_location) -> (Instance, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        instance_destroy :: proc(instance: ^Instance, location := #caller_location) ---
+        instance_destroy :: proc(instance: ^Instance) -> bool ---
 
         @(link_prefix=PREFIX)
         instance_enumerate_version :: proc() -> (u32, bool) #optional_ok ---
@@ -224,8 +224,18 @@ when api.IMPORT
         
         @(link_prefix=PREFIX)
         buffer_pack_destroy :: proc(context_: ^Context, buffer_pack: ^Buffer_Pack) -> bool ---
-
+        
         @(link_prefix=PREFIX)
         buffer_pack_upload_content_multiple_stacked :: proc(context_: ^Context, buffer_pack: ^Buffer_Pack, contents: []rawptr, start_offset: u64 = 0) -> bool ---
+        
+        /* Allocator */
+        @(link_prefix=PREFIX)
+        allocator_create_from_descriptor :: proc(context_: ^Context, descriptor: ^Allocator_Descriptor, allocator := context.allocator) -> (Allocator, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        allocator_destroy :: proc(context_: ^Context, allocator_: ^Allocator) -> bool ---
+
+        @(link_prefix=PREFIX)
+        allocator_create_buffer_pack_from_descriptor_single :: proc(context_: ^Context, allocator_: ^Allocator, descriptor: ^Buffer_Pack_Descriptor) -> (^Buffer_Pack, bool) #optional_ok ---
     }
 }

@@ -17,6 +17,16 @@ Instance_Descriptor :: struct
 }
 
 /*
+Checks if vulkan instance descriptor is valid.
+*/
+instance_descriptor_is_valid :: proc "contextless" (descriptor: ^Instance_Descriptor) -> bool
+{
+    if descriptor == nil do return false
+    if descriptor.api_version <= vk.API_VERSION_1_0 do return false
+    return true
+}
+
+/*
 Vulkan instance.
 */
 Instance :: struct
@@ -32,17 +42,16 @@ Instance :: struct
 }
 
 /*
-Creates a vulkan instance.
+Creates a new vulkan instance.
 */
 instance_create :: proc{
     instance_create_from_descriptor,
-    instance_create_from_parameters,
 }
 
 /*
 Check if instance is valid.
 */
-instance_is_valid :: #force_inline proc(instance: ^Instance) -> bool
+instance_is_valid :: #force_inline proc "contextless" (instance: ^Instance) -> bool
 {
     return instance != nil && handle_is_valid(instance.handle)
 }

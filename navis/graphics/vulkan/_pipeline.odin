@@ -245,7 +245,7 @@ Descriptor to compose a layout state create info.
 Layout_State_Descriptor :: struct
 {
     layouts: []vk.DescriptorSetLayout,
-    ranges: []vk.PushConstantRange,
+    push_constant_ranges: []vk.PushConstantRange,
 }
 
 /*
@@ -257,7 +257,7 @@ pipeline_compose_layout_state :: #force_inline proc(desc: ^Layout_State_Descript
     state.sType = .PIPELINE_LAYOUT_CREATE_INFO
     state.pSetLayouts = commons.array_try_as_pointer(desc.layouts)
     state.setLayoutCount = cast(u32)commons.array_try_len(desc.layouts)
-    state.pPushConstantRanges = commons.array_try_as_pointer(desc.ranges)
-    state.pushConstantRangeCount = cast(u32)commons.array_try_len(desc.ranges)
+    state.pPushConstantRanges = commons.array_try_as_pointer(desc.push_constant_ranges)
+    state.pushConstantRangeCount = cast(u32)commons.array_try_len(desc.push_constant_ranges)
     return state
 }

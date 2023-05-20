@@ -11,28 +11,48 @@ when api.EXPORT
 
     ENGINE_NAME :: "Navis"
 
-    @(export=api.SHARED, link_prefix=PREFIX)
-    instance_create_from_descriptor :: proc(desc: ^Instance_Descriptor, allocator := context.allocator, location := #caller_location) -> (Instance, bool) #optional_ok
-    {
-        if log.verbose_fail_error(desc == nil, "nil parameter, vulkan instance descriptor", location) do return {}, false
+/*
+Create a new vulkan instance from descriptor.
 
-        //Application info
+Returns:
+* Instance: new vulkan instance if success
+* bool: true if success
+*/
+    @(export=api.SHARED, link_prefix=PREFIX)
+    instance_create_from_descriptor :: proc(descriptor: ^Instance_Descriptor) -> (Instance, bool) #optional_ok
+    {
+        //Checking descriptor parameter
+        if !instance_descriptor_is_valid(descriptor)
+        {
+            log.verbose_error("Invalid vulkan instance descriptor parameter", descriptor)
+            return {}, false
+        }
+
+        //Making application info
         app_info: vk.ApplicationInfo
         app_info.sType = .APPLICATION_INFO
-        app_info.pApplicationName = desc.app_name
-        app_info.applicationVersion = desc.app_version
+        app_info.pApplicationName = descriptor.app_name
+        app_info.applicationVersion = descriptor.app_version
         app_info.pEngineName = ENGINE_NAME
         app_info.engineVersion = vk.MAKE_VERSION(api.VERSION_MAJOR, api.VERSION_MINOR, api.VERSION_PATCH)
-        app_info.apiVersion = desc.api_version
+        app_info.apiVersion = descriptor.api_version
 
-        //Enabled extensions
-        enabled_extensions, enabled_extensions_succ := commons.dynamic_from_slice(desc.extensions, context.temp_allocator) if desc.extensions != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
-        if log.verbose_fail_error(!enabled_extensions_succ, "create dynamic slice from enabled extensions slice", location) do return {}, false
+        //Allocatin enabled extensions
+        enabled_extensions, ena_ext_succ := commons.dynamic_from_slice(descriptor.extensions, context.temp_allocator) if descriptor.extensions != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
+        if !ena_ext_succ
+        {
+            log.verbose_error("Failed to allocate enabled extensions dynamic slice")
+            return {}, false
+        }
         defer delete(enabled_extensions)
 
-        //Enabled layers
-        enabled_layers, enabled_layers_succ := commons.dynamic_from_slice(desc.extensions, context.temp_allocator) if desc.layers != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
-        if log.verbose_fail_error(!enabled_layers_succ, "create dynamic slice from enabled layers slice", location) do return {}, false
+        //Allocating enabled layers
+        enabled_layers, ena_lay_succ := commons.dynamic_from_slice(descriptor.layers, context.temp_allocator) if descriptor.layers != nil else make([dynamic]cstring, 0, 0, context.temp_allocator), true
+        if !ena_lay_succ
+        {
+            log.verbose_error("Failed to allocate enabled layers dynamic slice")
+            return {}, false
+        }
         defer delete(enabled_layers)
 
         //Adding windows extensions
@@ -46,6 +66,7 @@ when api.EXPORT
         KHR_VALIDATION_NAME :: "VK_LAYER_KHRONOS_validation"
         when ODIN_DEBUG do append(&enabled_layers, KHR_VALIDATION_NAME)
 
+        //Making create info
         info: vk.InstanceCreateInfo
         info.sType = .INSTANCE_CREATE_INFO
         info.pApplicationInfo = &app_info
@@ -57,21 +78,23 @@ when api.EXPORT
         //Creating instance
         handle: vk.Instance
         result := vk._create_instance(&info, nil, &handle)
-        if log.verbose_fail_error(result != .SUCCESS, "create vulkan instance", location) do return {}, false
-
-        //Create debugger
+        if result != .SUCCESS
+        {
+            log.verbose_error(result, "Failed to create vulkan instance", info)
+            return {}, false
+        }
 
         //Cloning info
-        instance_app_name := utility.cstring_clone(desc.app_name, allocator)
-        instance_app_version := desc.app_version
-        instance_engine_name := utility.cstring_clone(ENGINE_NAME, allocator)
+        instance_app_name := utility.cstring_clone(descriptor.app_name, context.allocator)
+        instance_app_version := descriptor.app_version
+        instance_engine_name := utility.cstring_clone(ENGINE_NAME, context.allocator)
         instance_engine_version := app_info.engineVersion
-        instance_enabled_extensions := utility.cstring_clone(&enabled_extensions, allocator)
-        instance_enabled_layers := utility.cstring_clone(&enabled_layers, allocator)
+        instance_enabled_extensions := utility.cstring_clone(&enabled_extensions, context.allocator)
+        instance_enabled_layers := utility.cstring_clone(&enabled_layers, context.allocator)
 
         //Making instance
         instance: Instance
-        instance.__allocator = allocator
+        instance.__allocator = context.allocator
         instance.app_name = instance_app_name
         instance.app_version = instance_app_version
         instance.engine_name = instance_engine_name
@@ -82,35 +105,29 @@ when api.EXPORT
         return instance, true
     }
 
+/*
+Destroy a vulkan instance.
+
+Returns:
+* bool: true if success
+*/
     @(export=api.SHARED, link_prefix=PREFIX)
-    instance_create_from_parameters :: proc(app_name: cstring, app_version, api_version: u32, extensions, layers: []cstring, allocator := context.allocator, location := #caller_location) -> (Instance, bool) #optional_ok
+    instance_destroy :: proc(instance: ^Instance) -> bool
     {
-        desc: Instance_Descriptor
-        desc.app_name = app_name
-        desc.app_version = app_version
-        desc.api_version = api_version
-        desc.extensions = extensions
-        desc.layers = layers
-
-        return instance_create_from_descriptor(&desc, allocator)
-    }
-
-    @(export=api.SHARED, link_prefix=PREFIX)
-    instance_destroy :: proc(instance: ^Instance, location := #caller_location)
-    {
-        if log.verbose_fail_error(instance == nil, "nil instance paramater", location) do return
-
-        allocator := instance.__allocator
-
-        //Destroying vulkan instance
-        if instance.handle != nil
+        //Checking instance parameter
+        if !instance_is_valid(instance)
         {
-            log.verbose_debug("destroying vulkan instance", " ", location)
-            vk._destroy_instance(instance.handle, nil)
-            instance.handle = nil
+            log.verbose_error("Invalid vulkan instance parameter", instance)
+            return false
         }
 
-        //Deleting allocated
+        //Destroying instance
+        log.verbose_debug("Destroying vulkan instance", instance)
+        vk._destroy_instance(instance.handle, nil)
+
+        //Deleting members
+        allocator := instance.__allocator
+
         if instance.app_name != "" do delete(instance.app_name, allocator)
         if instance.engine_name != "" do delete(instance.engine_name, allocator)
         
@@ -125,6 +142,9 @@ when api.EXPORT
             for layer in instance.enabled_layers do delete(layer, allocator)
             delete(instance.enabled_layers, allocator)
         }
+        
+        instance^ = {}
+        return true
     }
 
 /*
