@@ -7,6 +7,28 @@ when api.EXPORT
     import "vk"
     import "navis:commons"
     import "navis:commons/log"
+    import "navis:graphics/vulkan/shaderc"
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    shader_module_compiler_create :: proc() -> (Shader_Module_Compiler, bool) #optional_ok
+    {
+        compiler := shaderc.compiler_initialize()
+        return cast(Shader_Module_Compiler)compiler, true
+    }
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    shader_module_compiler_destroy :: proc(compiler: ^Shader_Module_Compiler) -> bool
+    {
+        shaderc_compiler := cast(shaderc.Compiler)compiler^
+        shaderc.compiler_release(shaderc_compiler)
+        return true
+    }
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    shader_module_compile_to_spirv_from_data :: proc(compiler: ^Shader_Module_Compiler, source_code: rawptr, source_code_length: u64, kind: shaderc.Shader_Kind) -> (rawptr, bool) #optional_ok
+    {
+        return nil, false
+    }
 
     @(export=api.SHARED, link_prefix=PREFIX)
     shader_module_create_from_data :: proc(context_: ^Context, data: []byte, location := #caller_location) -> (vk.ShaderModule, bool) #optional_ok

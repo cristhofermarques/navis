@@ -7,6 +7,7 @@ PREFIX :: "navis_graphics_vulkan_"
 when api.IMPORT
 {
     import "vk"
+    import "shaderc"
     import "navis:graphics/ui"
     import "core:dynlib"
 
@@ -212,6 +213,15 @@ when api.IMPORT
         target_destroy :: proc(context_: ^Context, target: ^Target, location := #caller_location) -> bool ---
         
         /* Shader Module */
+        @(link_prefix=PREFIX)
+        shader_module_compiler_create :: proc() -> (Shader_Module_Compiler, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        shader_module_compiler_destroy :: proc(compiler: ^Shader_Module_Compiler) -> bool ---
+
+        @(link_prefix=PREFIX)
+        shader_module_compile_to_spirv_from_data :: proc(compiler: ^Shader_Module_Compiler, source_code: rawptr, source_code_length: u64, kind: shaderc.Shader_Kind) -> (rawptr, bool) #optional_ok ---
+
         @(link_prefix=PREFIX)
         shader_module_create_from_data :: proc(context_: ^Context, data: []byte, location := #caller_location) -> (vk.ShaderModule, bool) #optional_ok ---
         

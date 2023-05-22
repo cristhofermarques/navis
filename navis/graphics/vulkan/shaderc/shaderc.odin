@@ -156,7 +156,7 @@ Uniform_Kind :: enum
 
 Compiler :: distinct rawptr
 
-foreign import shaderc "binaries:shaderc_combined.lib"
+foreign import shaderc "vulkan_sdk:Lib/shaderc_combined.lib"
 
 foreign shaderc
 {
