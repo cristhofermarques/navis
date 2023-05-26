@@ -143,7 +143,7 @@ when api.IMPORT
         @(link_prefix=PREFIX)
         image_view_destroy :: proc(device: ^Device, image_view: ^Image_View, location := #caller_location) -> bool ---
         
-        /* Image View */
+        /* Framebuffer */
         @(link_prefix=PREFIX)
         framebuffer_create_from_descriptor :: proc(device: ^Device, render_pass: ^Render_Pass, desc: ^Framebuffer_Descriptor, image_views: []Image_View, allocator := context.allocator, location := #caller_location) -> (Framebuffer, bool) #optional_ok ---
         
@@ -217,10 +217,28 @@ when api.IMPORT
         shader_module_compiler_create :: proc() -> (Shader_Module_Compiler, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        shader_module_compiler_destroy :: proc(compiler: ^Shader_Module_Compiler) -> bool ---
+        shader_module_compiler_destroy :: proc(compiler: Shader_Module_Compiler) -> bool ---
 
         @(link_prefix=PREFIX)
-        shader_module_compile_to_spirv_from_data :: proc(compiler: ^Shader_Module_Compiler, source_code: rawptr, source_code_length: u64, kind: shaderc.Shader_Kind) -> (rawptr, bool) #optional_ok ---
+        shader_module_compile_to_spirv_from_data :: proc(compiler: Shader_Module_Compiler, options: Shader_Module_Compile_Options, descriptor: Shader_Module_Compile_Descriptor) -> shaderc.Compilation_Result ---
+        
+        @(link_prefix=PREFIX)
+        shader_module_compile_options_create :: proc() -> (Shader_Module_Compile_Options, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        shader_module_compile_options_destroy :: proc(options: Shader_Module_Compile_Options) -> bool ---
+        
+        @(link_prefix=PREFIX)
+        shader_module_compile_options_set_source_language :: proc(options: Shader_Module_Compile_Options, language: shaderc.Source_Language) ---
+
+        @(link_prefix=PREFIX)
+        shader_compilation_result_get_size :: proc(result: shaderc.Compilation_Result) -> u64 ---
+
+        @(link_prefix=PREFIX)
+        shader_compilation_result_get_data :: proc(result: shaderc.Compilation_Result) -> rawptr ---
+
+        @(link_prefix=PREFIX)
+        shader_compilation_result_destroy :: proc(result: shaderc.Compilation_Result) ---
 
         @(link_prefix=PREFIX)
         shader_module_create_from_data :: proc(context_: ^Context, data: []byte, location := #caller_location) -> (vk.ShaderModule, bool) #optional_ok ---
