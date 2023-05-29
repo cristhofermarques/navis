@@ -1,8 +1,9 @@
 #Folders/Files start with Dot('.')
 .*
 
-#Look at me
+#Dont ignore me
 !.gitignore
+!.gitattributes
 
 #Odin Language Server Json
 ols.json
