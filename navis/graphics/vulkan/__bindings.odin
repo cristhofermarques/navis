@@ -232,13 +232,13 @@ when api.IMPORT
         shader_module_compile_options_set_source_language :: proc(options: Shader_Module_Compile_Options, language: shaderc.Source_Language) ---
 
         @(link_prefix=PREFIX)
-        shader_compilation_result_get_size :: proc(result: shaderc.Compilation_Result) -> u64 ---
+        shader_module_compilation_result_get_size :: proc(result: shaderc.Compilation_Result) -> u64 ---
 
         @(link_prefix=PREFIX)
-        shader_compilation_result_get_data :: proc(result: shaderc.Compilation_Result) -> rawptr ---
+        shader_module_compilation_result_get_data :: proc(result: shaderc.Compilation_Result) -> rawptr ---
 
         @(link_prefix=PREFIX)
-        shader_compilation_result_destroy :: proc(result: shaderc.Compilation_Result) ---
+        shader_module_compilation_result_destroy :: proc(result: shaderc.Compilation_Result) ---
 
         @(link_prefix=PREFIX)
         shader_module_create_from_data :: proc(context_: ^Context, data: []byte, location := #caller_location) -> (vk.ShaderModule, bool) #optional_ok ---

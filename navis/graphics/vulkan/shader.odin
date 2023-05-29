@@ -83,27 +83,27 @@ Set source language of a shader module compile options.
 Get compilation result size.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    shader_compilation_result_get_size :: proc(result: shaderc.Compilation_Result) -> u64
+    shader_module_compilation_result_get_size :: proc(result: shaderc.Compilation_Result) -> u64
     {
         if result == nil do return 0
         return shaderc.result_get_length(result)
     }
 
 /*
-Get compilation result data.
+Get shader module compilation result data address.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    shader_compilation_result_get_data :: proc(result: shaderc.Compilation_Result) -> rawptr
+    shader_module_compilation_result_get_data :: proc(result: shaderc.Compilation_Result) -> rawptr
     {
         if result == nil do return nil
         return cast(rawptr)shaderc.result_get_bytes(result)
     }
 
 /*
-Destroy a compilation result.
+Destroy a shader module compilation result.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    shader_compilation_result_destroy :: proc(result: shaderc.Compilation_Result)
+    shader_module_compilation_result_destroy :: proc(result: shaderc.Compilation_Result)
     {
         if result == nil do return
         shaderc.result_release(result)
