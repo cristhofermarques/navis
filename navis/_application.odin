@@ -11,11 +11,6 @@ Application_UI :: struct
     window: ui.Window,
 }
 
-Application_Info :: struct
-{
-    running: bool,
-}
-
 Application_Time :: struct
 {
     delta_time_stopwatch: time.Stopwatch,

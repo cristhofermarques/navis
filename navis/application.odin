@@ -48,6 +48,7 @@ Begins an Application with provided modules.
         application.main_module = main_module
         application.modules = modules
 
+        module_on_application_set_cache(application.modules, application)
         module_on_application_begin(application.modules, application)
         application_create_window(application)
 

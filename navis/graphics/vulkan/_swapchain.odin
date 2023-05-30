@@ -5,7 +5,7 @@ import "navis:commons"
 import "core:runtime"
 
 /*
-TODO
+Vulkan swapchain descriptor.
 */
 Swapchain_Descriptor :: struct
 {
@@ -17,8 +17,6 @@ Swapchain_Descriptor :: struct
     image_view_type: vk.ImageViewType,
     image_view_components: vk.ComponentMapping,
     image_view_subresource_range: vk.ImageSubresourceRange,
-    framebuffer_flags: vk.FramebufferCreateFlags,
-    framebuffer_layers: i32,
 }
 
 /*
@@ -45,7 +43,6 @@ Swapchain :: struct
     present_mode: vk.PresentModeKHR,
     images: []vk.Image,
     image_views: []Image_View,
-    framebuffers: []Framebuffer,
     handle: vk.SwapchainKHR, 
 }
 

@@ -9,6 +9,7 @@ when api.IMPORT
     import "vk"
     import "shaderc"
     import "navis:graphics/ui"
+    import graphics_commons "navis:graphics/commons"
     import "core:dynlib"
 
     when ODIN_OS == .Windows do foreign import navis "binaries:navis.lib"
@@ -259,11 +260,17 @@ when api.IMPORT
         /* Allocator */
         @(link_prefix=PREFIX)
         allocator_create_from_descriptor :: proc(context_: ^Context, descriptor: ^Allocator_Descriptor, allocator := context.allocator) -> (Allocator, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         allocator_destroy :: proc(context_: ^Context, allocator_: ^Allocator) -> bool ---
-
+        
         @(link_prefix=PREFIX)
         allocator_create_buffer_pack_from_descriptor_single :: proc(context_: ^Context, allocator_: ^Allocator, descriptor: ^Buffer_Pack_Descriptor) -> (^Buffer_Pack, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        renderer_create_from_descriptor :: proc(descriptor: ^graphics_commons.Renderer_Descriptor) -> (Renderer, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        renderer_destroy :: proc(renderer: ^Renderer) -> bool ---
     }
 }

@@ -19,26 +19,16 @@ when api.EXPORT
         surface, success = surface_create(&context_.instance, &context_.physical_device, desc.window, allocator, location)
         if log.verbose_fail_error(!success, "create vulkan surface for target", location) do return {}, false
         
-        render_pass: Render_Pass
-        render_pass, success = render_pass_create(&context_.device, &desc.render_pass, location)
-        if log.verbose_fail_error(!success, "create vulkan render pass for target", location)
-        {
-            surface_destroy(&context_.instance, &surface)
-            return {}, false
-        }
-        
         swapchain: Swapchain
-        swapchain, success = swapchain_create(&context_.device, &surface, &render_pass, &desc.swapchain, allocator, location)
+        swapchain, success = swapchain_create(&context_.device, &surface, &desc.swapchain, allocator, location)
         if log.verbose_fail_error(!success, "create vulkan swapchain for target", location)
         {
-            render_pass_destroy(&context_.device, &render_pass, location)
             surface_destroy(&context_.instance, &surface)
             return {}, false
         }
 
         target: Target
         target.surface = surface
-        target.render_pass = render_pass
         target.swapchain = swapchain
         return target, true
     }
@@ -50,7 +40,6 @@ when api.EXPORT
         if log.verbose_fail_error(target == nil, "invalid vulkan target parameter", location) do return false
 
         swapchain_destroy(&context_.device, &target.swapchain, location)
-        render_pass_destroy(&context_.device, &target.render_pass, location)
         surface_destroy(&context_.instance, &target.surface)
         return true
     }

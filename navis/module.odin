@@ -48,8 +48,12 @@ Treats a module path, extension isn't required.
 
         module.vtable.on_application_begin = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_BEGIN)
         module.vtable.on_application_end = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_END)
+        module.vtable.on_application_set_cache = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_SET_CACHE)
 
         module.vtable.on_application_create_window = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_CREATE_WINDOW)
+
+        module.vtable.on_application_create_window = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_CREATE_WINDOW)
+        module.vtable.on_application_create_vulkan_renderer = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_CREATE_VULKAN_RENDERER)
     }
 
 /*

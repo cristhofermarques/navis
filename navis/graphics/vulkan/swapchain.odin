@@ -32,11 +32,10 @@ when api.EXPORT
     }
 
     @(export=api.SHARED, link_prefix=PREFIX)
-    swapchain_create_from_descriptor :: proc(device: ^Device, surface: ^Surface, render_pass: ^Render_Pass, desc: ^Swapchain_Descriptor, allocator := context.allocator, location := #caller_location) -> (Swapchain, bool) #optional_ok
+    swapchain_create_from_descriptor :: proc(device: ^Device, surface: ^Surface, desc: ^Swapchain_Descriptor, allocator := context.allocator, location := #caller_location) -> (Swapchain, bool) #optional_ok
     {
         if log.verbose_fail_error(!device_is_valid(device), "invalid vulkan device parameter", location) do return {}, false
         if log.verbose_fail_error(!surface_is_valid(surface), "invalid vulkan surface parameter", location) do return {}, false
-        if log.verbose_fail_error(!render_pass_is_valid(render_pass), "invalid vulkan render pass parameter", location) do return {}, false
         if log.verbose_fail_error(desc == nil, "invalid swapchain descriptor parameter", location) do return {}, false
         if log.verbose_fail_error(!surface_support_image_count(surface, desc.image_count), "invalid swapchain image count", location) do return {}, false
         if log.verbose_fail_error(!surface_support_image_format(surface, desc.image_format), "unsupported swapchain image format", location) do return {}, false
@@ -108,46 +107,6 @@ when api.EXPORT
             return {}, false
         }
 
-        //Making framebuffers slice
-        framebuffers, fb_alloc_err := make([]Framebuffer, desc.image_count, allocator)
-        if log.verbose_fail_error(fb_alloc_err != .None, "make framebuffers slice", location)
-        {
-            for i := 0; i < len(image_views); i += 1 do image_view_destroy(device, &image_views[i], location)
-            delete(image_views, allocator)
-            delete(images, allocator)
-            vk.DestroySwapchainKHR(device.handle, handle, nil)
-            return {}, false
-        }
-
-        //Making framebuffer descriptor
-        fb_desc: Framebuffer_Descriptor
-        fb_desc.flags = desc.framebuffer_flags
-        fb_desc.width = cast(i32)surface.capabilities.currentExtent.width
-        fb_desc.height = cast(i32)surface.capabilities.currentExtent.height
-        fb_desc.layers = desc.framebuffer_layers
-
-        fb_created_count := 0
-        for image_view, index in image_views
-        {
-            framebuffer, success := framebuffer_create_from_descriptor(device, render_pass, &fb_desc, {image_view}, allocator, location)
-            if !success do break
-
-            framebuffers[index] = framebuffer
-            fb_created_count += 1
-        }
-
-        //Checking framebuffers creation fail
-        if log.verbose_fail_error(fb_created_count != len(framebuffers), "create framebuffers", location)
-        {
-            for i := 0; i < fb_created_count; i += 1 do framebuffer_destroy(device, &framebuffers[i], location)
-            delete(framebuffers, allocator)
-            for i := 0; i < len(image_views); i += 1 do image_view_destroy(device, &image_views[i], location)
-            delete(image_views, allocator)
-            delete(images, allocator)
-            vk.DestroySwapchainKHR(device.handle, handle, nil)
-            return {}, false
-        }
-
         //Making swapchain
         swapchain: Swapchain
         swapchain.allocator = allocator
@@ -157,7 +116,6 @@ when api.EXPORT
         swapchain.present_mode = desc.present_mode
         swapchain.images = images
         swapchain.image_views = image_views
-        swapchain.framebuffers = framebuffers
         swapchain.handle = handle
         return swapchain, true
     }
@@ -174,13 +132,6 @@ when api.EXPORT
         {
             vk.DestroySwapchainKHR(device.handle, swapchain.handle, nil)
             swapchain.handle = 0
-        }
-
-        if swapchain.framebuffers != nil
-        {
-            for i := 0; i < len(swapchain.framebuffers); i += 1 do framebuffer_destroy(device, &swapchain.framebuffers[i], location)
-            delete(swapchain.framebuffers, allocator)
-            swapchain.framebuffers = nil
         }
 
         if swapchain.image_views != nil
