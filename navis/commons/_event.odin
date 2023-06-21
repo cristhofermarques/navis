@@ -1,6 +1,6 @@
 package commons
 
-import "utility"
+import "navis:commons"
 import "core:intrinsics"
 
 Event :: struct($T: typeid) where intrinsics.type_is_proc(T)
@@ -26,7 +26,7 @@ event_delete :: proc(event: ^Event($T)) where intrinsics.type_is_proc(T)
 event_append :: proc(event: ^Event($T), callback: T) where intrinsics.type_is_proc(T)
 {
     if event == nil || event.callbacks == nil || callback == nil do return
-    if utility.dynamic_contains(event.callbacks, callback) do return
+    if commons.dynamic_contains(event.callbacks, callback) do return
     append(&event.callbacks, callback)
 }
 

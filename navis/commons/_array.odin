@@ -1,6 +1,23 @@
 package commons
 
 import "core:intrinsics"
+import "core:runtime"
+
+/*
+Checks if slice is nil or empty.
+* Return false if slice is nil or empty
+*/
+slice_is_nil_or_empty :: proc "contextless" (slice: []$T) -> bool
+{
+    //Nil check
+    if slice == nil do return true
+
+    //Empty check
+    if len(slice) == 0 do return true
+
+    //Not nil or empty
+    return false
+}
 
 /*
 Return array length if it is not nil, else return 0.
@@ -15,24 +32,46 @@ array_try_len :: #force_inline proc(array: $T) -> (int, bool) where intrinsics.t
 /*
 Return slice as pointer if its not nil, else return nil.
 */
-slice_try_as_pointer :: #force_inline proc(array: $Array/[]$Type) -> (^Type, bool) #optional_ok
+slice_try_as_pointer :: proc "contextless" (array: $Array/[]$Type) -> (^Type, bool) #optional_ok
 {
-    if array_try_len(array) < 1 do return nil, false
-    else do return &array[0], true
+    //Nil array parameter
+    if array == nil do return nil, false
+    
+    //Nil raw slice data
+    raw := transmute(runtime.Raw_Slice)array
+    if raw.data == nil do return nil, false
+    
+    //Return data
+    return cast(^Type)raw.data, true
 }
 
 /*
 Return dynamic slice as pointer if its not nil, else return nil.
 */
-dynamic_try_as_pointer :: #force_inline proc(array: $Array/[dynamic]$Type) -> (^Type, bool) #optional_ok
+dynamic_try_as_pointer :: proc "contextless" (array: $Array/[dynamic]$Type) -> (^Type, bool) #optional_ok
 {
-    if array_try_len(array) < 1 do return nil, false
-    else do return &array[0], true
+    //Nil array parameter
+    if array == nil do return nil, false
+    
+    //Nil raw slice data
+    raw := transmute(runtime.Raw_Dynamic_Array)array
+    if raw.data == nil do return nil, false
+    
+    //Return data
+    return cast(^Type)raw.data, true
 }
 
 /*
-Returns true if slice contains provided element.
-* Uses '==' operator.
+Try to return address of slice or dynamic slice
+*/
+array_try_as_pointer :: proc{
+    slice_try_as_pointer,
+    dynamic_try_as_pointer,
+}
+
+/*
+Return true if slice contains provided element.
+* Use '==' operator.
 */
 slice_contains :: #force_inline proc(slice: []$T, element: T) -> bool
 {
@@ -42,14 +81,31 @@ slice_contains :: #force_inline proc(slice: []$T, element: T) -> bool
 }
 
 /*
-Returns true if dynamic slice contains provided element.
-* Uses '==' operator.
+Return dynamic slice as array.
+*/
+dynamic_iterator :: #force_inline proc "contextless" (s: ^[dynamic]$T) -> []T
+{
+    if s == nil do return nil
+    return s[0:]
+}
+
+/*
+Return true if dynamic slice contains provided element.
+* Use '==' operator.
 */
 dynamic_contains :: #force_inline proc(slice: [dynamic]$T, element: T) -> bool
 {
     if slice == nil do return false
     for element_ in slice do if element_ == element do return true
     return false
+}
+
+/*
+Check if an array contains provided element.
+*/
+array_contains :: proc{
+    slice_contains,
+    dynamic_contains,
 }
 
 /*
@@ -96,7 +152,7 @@ dynamic_append_slice :: #force_inline proc(dyn_slice: ^[dynamic]$T, slice: []T)
 /*
 Append slice elements to dynamic slice.
 */
-slice_clone :: #force_inline proc(slice: []$T, allocator := context.allocator) -> ([]T, bool) #optional_ok
+slice_clone :: proc(slice: []$T, allocator := context.allocator) -> ([]T, bool) #optional_ok
 {
     if slice == nil do return nil, false
 
@@ -108,16 +164,6 @@ slice_clone :: #force_inline proc(slice: []$T, allocator := context.allocator) -
 
     for e, i in slice do clone[i] = e
     return clone, true
-}
-
-array_try_as_pointer :: proc{
-    slice_try_as_pointer,
-    dynamic_try_as_pointer,
-}
-
-array_contains :: proc{
-    slice_contains,
-    dynamic_contains,
 }
 
 array_clone :: proc{

@@ -1,6 +1,5 @@
 package navis
 
-import "commons/utility"
 import "commons/memory"
 import "graphics/commons"
 import "graphics/ui"

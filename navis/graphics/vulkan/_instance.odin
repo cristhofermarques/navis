@@ -31,7 +31,6 @@ Vulkan instance.
 */
 Instance :: struct
 {
-    __allocator: runtime.Allocator,
     app_name: cstring,
     app_version: u32,
     engine_name: cstring,

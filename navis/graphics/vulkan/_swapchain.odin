@@ -20,6 +20,16 @@ Swapchain_Descriptor :: struct
 }
 
 /*
+Checks if swapchain descriptor is valid.
+*/
+swapchain_descriptor_is_valid :: proc "contextless" (descriptor: ^Swapchain_Descriptor) -> bool
+{
+    if descriptor == nil do return false
+    if descriptor.image_count < 1 do return false
+    return true
+}
+
+/*
 Swapchain Information.
 */
 Swapchain_Info :: struct
@@ -53,16 +63,16 @@ swapchain_create :: proc{
 /*
 Checks if swapchain handle is valid.
 */
-swapchain_is_valid :: #force_inline proc(swapchain: ^Swapchain) -> bool
+swapchain_is_valid :: proc "contextless" (swapchain: ^Swapchain) -> bool
 {
-    return swapchain != nil && swapchain.handle != 0
+    return swapchain != nil && handle_is_valid(swapchain.handle)
 }
 
 /*
 Acquire next swapchain image index.
 * No parameter cheking.
 */
-swapchain_acquire_next_image :: #force_inline proc(context_: ^Context, swapchain: ^Swapchain, semaphore: Semaphore, fence: vk.Fence, timeout: u64) -> (u32, bool) #optional_ok
+swapchain_acquire_next_image :: proc "contextless" (context_: ^Context, swapchain: ^Swapchain, semaphore: Semaphore, fence: vk.Fence, timeout: u64) -> (u32, bool) #optional_ok
 {
     index: u32
     result := vk.AcquireNextImageKHR(context_.device.handle, swapchain.handle, timeout, semaphore, fence, &index)
@@ -87,7 +97,7 @@ Present_Descriptor :: struct
 Present swapchain image.
 * No parameter cheking.
 */
-swapchain_present_from_descriptor :: #force_inline proc(swapchain: ^Swapchain, queue: ^Queue, desc: ^Present_Descriptor) -> bool
+swapchain_present_from_descriptor :: proc "contextless" (swapchain: ^Swapchain, queue: ^Queue, desc: ^Present_Descriptor) -> bool
 {
     info: vk.PresentInfoKHR
     info.sType = .PRESENT_INFO_KHR

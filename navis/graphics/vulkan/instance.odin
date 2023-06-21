@@ -5,9 +5,8 @@ import "navis:api"
 when api.EXPORT
 {
     import "vk"
-    import "navis:commons/log"
-    import "navis:commons/utility"
     import "navis:commons"
+    import "navis:commons/log"
 
     ENGINE_NAME :: "Navis"
 
@@ -19,7 +18,7 @@ Returns:
 * bool: true if success
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    instance_create_from_descriptor :: proc(descriptor: ^Instance_Descriptor) -> (Instance, bool) #optional_ok
+    instance_create_from_descriptor :: proc(descriptor: ^Instance_Descriptor, allocator := context.allocator) -> (Instance, bool) #optional_ok
     {
         //Checking descriptor parameter
         if !instance_descriptor_is_valid(descriptor)
@@ -85,16 +84,15 @@ Returns:
         }
 
         //Cloning info
-        instance_app_name := utility.cstring_clone(descriptor.app_name, context.allocator)
+        instance_app_name := commons.cstring_clone(descriptor.app_name, allocator)
         instance_app_version := descriptor.app_version
-        instance_engine_name := utility.cstring_clone(ENGINE_NAME, context.allocator)
+        instance_engine_name := commons.cstring_clone(ENGINE_NAME, allocator)
         instance_engine_version := app_info.engineVersion
-        instance_enabled_extensions := utility.cstring_clone(&enabled_extensions, context.allocator)
-        instance_enabled_layers := utility.cstring_clone(&enabled_layers, context.allocator)
+        instance_enabled_extensions := commons.cstring_clone(&enabled_extensions, allocator)
+        instance_enabled_layers := commons.cstring_clone(&enabled_layers, allocator)
 
         //Making instance
         instance: Instance
-        instance.__allocator = context.allocator
         instance.app_name = instance_app_name
         instance.app_version = instance_app_version
         instance.engine_name = instance_engine_name
@@ -112,7 +110,7 @@ Returns:
 * bool: true if success
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    instance_destroy :: proc(instance: ^Instance) -> bool
+    instance_destroy :: proc(instance: ^Instance, allocator := context.allocator) -> bool
     {
         //Checking instance parameter
         if !instance_is_valid(instance)
@@ -126,8 +124,6 @@ Returns:
         vk._destroy_instance(instance.handle, nil)
 
         //Deleting members
-        allocator := instance.__allocator
-
         if instance.app_name != "" do delete(instance.app_name, allocator)
         if instance.engine_name != "" do delete(instance.engine_name, allocator)
         
@@ -168,14 +164,23 @@ Gets instance extension properties.
 
         extension_count: u32
         result = vk.EnumerateInstanceExtensionProperties(layer_name, &extension_count, nil)
-        if log.verbose_fail_error(result != .SUCCESS, "enumerate instance extension properties, count querry", location) do return nil, false
+        if result != .SUCCESS
+        {
+            log.verbose_error(result, "Failed to enumerate instance extensions properties count querry")
+            return nil, false
+        }
         
         extensions, alloc_err := make([]vk.ExtensionProperties, extension_count, allocator)
-        if log.verbose_fail_error(alloc_err != .None, "make instance extension properties slice", location) do return nil, false
+        if alloc_err != .None
+        {
+            log.verbose_error(result, "Failed to allocate instance extensions properties slice")
+            return nil, false
+        }
         
         result = vk.EnumerateInstanceExtensionProperties(layer_name, &extension_count, commons.array_try_as_pointer(extensions))
-        if log.verbose_fail_error(result != .SUCCESS, "enumerate instance extension properties, fill querry", location)
+        if result != .SUCCESS
         {
+            log.verbose_error(result, "Failed to enumerate instance extensions properties fill querry")
             delete(extensions, allocator)
             return nil, false
         }
@@ -193,14 +198,23 @@ Gets instance layer properties.
 
         layer_count: u32
         result = vk.EnumerateInstanceLayerProperties(&layer_count, nil)
-        if log.verbose_fail_error(result != .SUCCESS, "enumerate instance layer properties, count querry", location) do return nil, false
+        if result != .SUCCESS
+        {
+            log.verbose_error(result, "Failed to enumerate instance layers properties count querry")
+            return nil, false
+        }
 
         layers, alloc_err := make([]vk.LayerProperties, layer_count, allocator)
-        if log.verbose_fail_error(alloc_err != .None, "make instance layer properties slice", location) do return nil, false
+        if alloc_err != .None
+        {
+            log.verbose_error(result, "Failed to allocate instance layers properties slice")
+            return nil, false
+        }
 
         result = vk.EnumerateInstanceLayerProperties(&layer_count, commons.array_try_as_pointer(layers));
-        if log.verbose_fail_error(result != .SUCCESS, "enumerate instance layer properties, fill querry", location)
+        if result != .SUCCESS
         {
+            log.verbose_error(result, "Failed to enumerate instance layers properties fill querry")
             delete(layers, allocator)
             return nil, false
         }

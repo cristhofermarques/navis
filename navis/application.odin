@@ -6,7 +6,6 @@ when api.EXPORT
 {
     import "navis:commons"
     import "navis:commons/log"
-    import "navis:commons/utility"
     import "navis:graphics/ui"
     import "navis:commons/input"
     import "core:time"
@@ -37,7 +36,7 @@ Begins an Application with provided modules.
     {
         if application == nil || modules == nil do return false
         
-        main_module, main_module_succ := utility.slice_try_get_pointer(modules, 0)
+        main_module, main_module_succ := commons.slice_try_as_pointer(modules)
         if log.verbose_fail_error(!main_module_succ, "Get Main Module", location)
         {
             module_unload(modules)

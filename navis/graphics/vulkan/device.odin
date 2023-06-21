@@ -120,7 +120,7 @@ when api.EXPORT
 
         //Cloning infos
         device_features := desc.features != nil ? desc.features^ : {}
-        device_extensions := commons.cstring_clone_dynamic(&enabled_extensions, allocator, location)
+        device_extensions := commons.cstring_clone(&enabled_extensions, allocator)
 
         //Making device
         device: Device

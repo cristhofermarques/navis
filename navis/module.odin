@@ -4,7 +4,7 @@ import "navis:api"
 
 when api.EXPORT
 {
-    import "commons/utility"
+    import "navis:commons"
     import "core:dynlib"
     import "core:strings"
     import "core:path/filepath"
@@ -120,7 +120,7 @@ Load multiple modules.
             append(&modules, module)
         }
         
-        return utility.slice_from_dynamic(modules)
+        return commons.slice_from_dynamic(modules, allocator)
     }
 
 /*

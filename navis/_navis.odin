@@ -2,16 +2,15 @@ package navis
 
 import "api"
 
-import "commons/utility"
-import "commons/log"
 import "commons"
+import "commons/log"
 
+import "graphics"
 import graphics_commons "graphics/commons"
 import "graphics/vulkan/vk"
 import "graphics/vulkan/shaderc"
 import "graphics/vulkan"
 import "graphics/ui"
-import "graphics"
 
 when api.EXPORT
 {

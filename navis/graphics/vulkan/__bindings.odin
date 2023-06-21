@@ -20,13 +20,10 @@ when api.IMPORT
     {
         /* Instance */
         @(link_prefix=PREFIX)
-        instance_create_from_descriptor :: proc(descriptor: ^Instance_Descriptor) -> (Instance, bool) #optional_ok ---
+        instance_create_from_descriptor :: proc(descriptor: ^Instance_Descriptor, allocator := context.allocator) -> (Instance, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
-        instance_create_from_parameters :: proc(app_name: cstring, app_version, api_version: u32, extensions, layers: []cstring, allocator := context.allocator, location := #caller_location) -> (Instance, bool) #optional_ok ---
-
-        @(link_prefix=PREFIX)
-        instance_destroy :: proc(instance: ^Instance) -> bool ---
+        instance_destroy :: proc(instance: ^Instance, allocator := context.allocator) -> bool ---
 
         @(link_prefix=PREFIX)
         instance_enumerate_version :: proc() -> (u32, bool) #optional_ok ---
