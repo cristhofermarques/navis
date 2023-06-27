@@ -5,6 +5,11 @@ import "graphics/commons"
 import "graphics/ui"
 import "core:time"
 
+Application_Environment :: struct
+{
+    modules_directories, packages_directories: []string,
+}
+
 Application_UI :: struct
 {
     window: ui.Window,

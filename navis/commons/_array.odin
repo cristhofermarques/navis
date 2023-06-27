@@ -23,7 +23,7 @@ slice_is_nil_or_empty :: proc "contextless" (slice: []$T) -> bool
 Return array length if it is not nil, else return 0.
 * Works for any array type (array, slice, dynamic).
 */
-array_try_len :: #force_inline proc(array: $T) -> (int, bool) where intrinsics.type_is_array(T) || intrinsics.type_is_slice(T) || intrinsics.type_is_dynamic_array(T) #optional_ok
+array_try_len :: #force_inline proc "contextless" (array: $T) -> (int, bool) where intrinsics.type_is_array(T) || intrinsics.type_is_slice(T) || intrinsics.type_is_dynamic_array(T) #optional_ok
 {
     if array == nil do return 0, false
     else do return len(array), true

@@ -12,25 +12,14 @@ import "graphics/vulkan/shaderc"
 import "graphics/vulkan"
 import "graphics/ui"
 
-when api.EXPORT
-{
-    import "core:runtime"
-
-    @(export=api.SHARED)
-    types :: proc()
-    {
-        //a := type_info_of(graphics_commons.Window)
-    }
-}
-
-run_paths :: #force_inline proc(paths: ..string, allocator := context.allocator, location := #caller_location)
+run_from_paths :: #force_inline proc(modules_paths, packages_paths: []string, allocator := context.allocator)
 {
     application: Application
-    if !application_begin_paths(application = &application, paths = paths, allocator = allocator, location = location) do return
-    defer application_end(application = &application, location = location)
+    if !application_begin_from_paths(&application, modules_paths, packages_paths, allocator) do return
+    defer application_end(&application)
     application_loop(&application)
 }
 
 run :: proc{
-    run_paths,
+    run_from_paths,
 }

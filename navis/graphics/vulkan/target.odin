@@ -20,7 +20,7 @@ when api.EXPORT
         if log.verbose_fail_error(!success, "create vulkan surface for target", location) do return {}, false
         
         swapchain: Swapchain
-        swapchain, success = swapchain_create(&context_.device, &surface, &desc.swapchain, allocator, location)
+        swapchain, success = swapchain_create(&context_.device, &surface, &desc.swapchain, allocator)
         if log.verbose_fail_error(!success, "create vulkan swapchain for target", location)
         {
             surface_destroy(&context_.instance, &surface)

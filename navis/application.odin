@@ -10,21 +10,40 @@ when api.EXPORT
     import "navis:commons/input"
     import "core:time"
     import "core:fmt"
-    
+
 /*
 Begins an Application with provided paths.
 * First path (index 0) is treated as the main module.
 */
     @(export=api.SHARED, link_prefix=PREFIX)
-    application_begin_paths :: proc(application: ^Application, paths: ..string, allocator := context.allocator, location := #caller_location) -> bool
+    application_begin_from_paths :: proc(application: ^Application, modules_paths, packages_paths: []string, allocator := context.allocator) -> bool
     {
-        if log.verbose_fail_error(application == nil, "'nil' Application pointer", location) do return false
-        if log.verbose_fail_error(paths == nil, "'nil' paths slice", location) do return false
+        if application == nil
+        {
+            log.verbose_error("Invalid application parameter", application)
+            return false
+        }
 
-        modules, modules_succ := module_load_paths(paths = paths, allocator = allocator)
-        if log.verbose_fail_error(!modules_succ, "Load Modules", location) do return false
+        if commons.slice_is_nil_or_empty(modules_paths)
+        {
+            log.verbose_error("Invalid modules paths parameter", modules_paths)
+            return false
+        }
+
+        if commons.slice_is_nil_or_empty(packages_paths)
+        {
+            log.verbose_error("Invalid packages paths parameter", packages_paths)
+            return false
+        }
+
+        modules, modules_load_success := module_load_paths(paths = modules_paths, allocator = allocator)
+        if !modules_load_success
+        {
+            log.verbose_error("Failed to load modules")
+            return false
+        }
         
-        return application_begin_modules(application = application, modules = modules, allocator = allocator, location = location)
+        return application_begin_modules(application = application, modules = modules, allocator = allocator)
     }
 
 /*
