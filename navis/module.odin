@@ -17,7 +17,6 @@ Treats a module path, extension isn't required.
 * Ignores any extension if included.
 * Adds expected extension (.dll, .so) for each OS. 
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
     module_treat_path :: proc(path: string, allocator := context.allocator) -> string
     {
         extension := filepath.ext(path)
@@ -37,23 +36,18 @@ Treats a module path, extension isn't required.
         return module_path
     }
 
-    @(export=api.SHARED, link_prefix=PREFIX)
     module_populate_vtable :: proc(module: ^Module)
     {
-        assert(module != nil, "Invalid vtable pointer")
         if module == nil do return
 
         module.vtable.on_load = auto_cast dynlib.symbol_address(module.library, MODULE_ON_LOAD)
         module.vtable.on_unload = auto_cast dynlib.symbol_address(module.library, MODULE_ON_UNLOAD)
 
-        module.vtable.on_application_begin = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_BEGIN)
-        module.vtable.on_application_end = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_END)
-        module.vtable.on_application_set_cache = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_SET_CACHE)
+        module.vtable.on_begin = auto_cast dynlib.symbol_address(module.library, MODULE_ON_BEGIN)
+        module.vtable.on_begin = auto_cast dynlib.symbol_address(module.library, MODULE_ON_END)
 
-        module.vtable.on_application_create_window = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_CREATE_WINDOW)
-
-        module.vtable.on_application_create_window = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_CREATE_WINDOW)
-        module.vtable.on_application_create_vulkan_renderer = auto_cast dynlib.symbol_address(module.library, MODULE_ON_APPLICATION_CREATE_VULKAN_RENDERER)
+        module.vtable.on_set_application_cache = auto_cast dynlib.symbol_address(module.library, MODULE_ON_SET_APPLICATION_CACHE)
+        module.vtable.on_create_window = auto_cast dynlib.symbol_address(module.library, MODULE_ON_CREATE_WINDOW)
     }
 
 /*
@@ -61,7 +55,6 @@ Loads a module from path.
 
 Obs: Library extension (.dll/.so) not required.
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
     module_load_path :: proc(path: string, allocator := context.allocator) -> (Module, bool) #optional_ok
     {
         module_path := module_treat_path(path, context.temp_allocator)
@@ -78,21 +71,19 @@ Obs: Library extension (.dll/.so) not required.
         module_populate_vtable(&module)
 
         //On Load
-        if module.vtable.on_load != nil do module.vtable.on_load(&module)
-
+        module_on_load(&module)
         return module, true
     }
 
 /*
 Unloads a module.
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
     module_unload_single :: proc(module: ^Module) -> bool
     {
         if module == nil do return false
 
         //On Unload
-        if module.vtable.on_unload != nil do module.vtable.on_unload(module)
+        module_on_unload(module)
 
         allocator := module.__allocator
         delete(module.path, allocator)
@@ -103,7 +94,6 @@ Unloads a module.
 /*
 Load multiple modules.
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
     module_load_paths :: proc(paths: ..string, allocator := context.allocator) -> ([]Module, bool) #optional_ok
     {
         if paths == nil do return nil, false
@@ -126,7 +116,6 @@ Load multiple modules.
 /*
 Unload multiple modules.
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
     module_unload_multiple :: proc(modules: []Module)
     {
         if modules == nil do return

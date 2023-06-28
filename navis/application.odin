@@ -7,16 +7,13 @@ when api.EXPORT
     import "navis:commons"
     import "navis:commons/log"
     import "navis:graphics/ui"
-    import "navis:commons/input"
-    import "core:time"
-    import "core:fmt"
+    import "vendor:glfw"
 
 /*
 Begins an Application with provided paths.
 * First path (index 0) is treated as the main module.
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
-    application_begin_from_paths :: proc(application: ^Application, modules_paths, packages_paths: []string, allocator := context.allocator) -> bool
+    application_begin_from_paths :: proc(application: ^Application, paths: []string, allocator := context.allocator) -> bool
     {
         if application == nil
         {
@@ -24,59 +21,48 @@ Begins an Application with provided paths.
             return false
         }
 
-        if commons.slice_is_nil_or_empty(modules_paths)
+        if commons.slice_is_nil_or_empty(paths)
         {
-            log.verbose_error("Invalid modules paths parameter", modules_paths)
+            log.verbose_error("Invalid paths parameter", paths)
             return false
         }
 
-        if commons.slice_is_nil_or_empty(packages_paths)
-        {
-            log.verbose_error("Invalid packages paths parameter", packages_paths)
-            return false
-        }
-
-        modules, modules_load_success := module_load_paths(paths = modules_paths, allocator = allocator)
+        //Loading modules
+        modules, modules_load_success := module_load_paths(paths = paths, allocator = allocator)
         if !modules_load_success
         {
             log.verbose_error("Failed to load modules")
             return false
         }
-        
-        return application_begin_modules(application = application, modules = modules, allocator = allocator)
-    }
 
-/*
-Begins an Application with provided modules.
-* First module (index 0) is treated as the main module.
-*/
-    @(export=api.SHARED, link_prefix=PREFIX)
-    application_begin_modules :: proc(application: ^Application, modules: ..Module, allocator := context.allocator, location := #caller_location) -> bool
-    {
-        if application == nil || modules == nil do return false
-        
-        main_module, main_module_succ := commons.slice_try_as_pointer(modules)
-        if log.verbose_fail_error(!main_module_succ, "Get Main Module", location)
+        //Setup application
+        application.running = true
+        application.main_module = &modules[0]
+        application.modules = modules
+        module_on_set_application_cache(modules, application)
+
+        //Initialize glfw
+        if glfw.Init() != 1
         {
-            module_unload(modules)
+            log.verbose_error("Failed to initialize glfw")
+            return false
+        }
+        
+        //Create window
+        created_window := application_create_window(application)
+        if !created_window
+        {
+            log.verbose_error("Failed to create window")
             return false
         }
 
-        application.running = true
-        application.main_module = main_module
-        application.modules = modules
-
-        module_on_application_set_cache(application.modules, application)
-        module_on_application_begin(application.modules, application)
-        application_create_window(application)
-
+        //Success
         return true
     }
 
 /*
 Performs Application loop.
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
     application_loop :: proc(application: ^Application)
     {
         if application == nil do return
@@ -90,63 +76,51 @@ Performs Application loop.
 /*
 Ends Application.
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
     application_end :: proc(application: ^Application, location := #caller_location) -> bool
     {
         if log.verbose_fail_error(application == nil, "'nil' Application pointer", location) do return false
         if log.verbose_fail_error(application.running, "Application is Running", location) do return false
 
         application_destroy_window(application)
-        module_on_application_end(application.modules, application)
+        module_on_end(application.modules)
 
         if application.modules != nil do module_unload(application.modules)
         application.modules = nil
         application.main_module = nil
+
+        //Finalize glfw
+        glfw.Terminate()
+
         return true
     }
 
 /*
 Update Application.
 */
-    @(export=api.SHARED, link_prefix=PREFIX)
     application_update :: proc(application: ^Application)
     {
-        application_begin_frame(application)
+        if !ui.window_update(&application.ui.window) do exit_uncached(application)
 
-        application_update_window(application)
-
-        application_end_frame(application)
-    }
-
-    application_begin_frame :: #force_inline proc(application: ^Application)
-    {
-        dt_sw := &application.time.delta_time_stopwatch
-
-        time.stopwatch_reset(dt_sw)
-        time.stopwatch_start(dt_sw)
-    }
-
-    application_end_frame :: #force_inline proc(application: ^Application)
-    {
-        dt_sw := &application.time.delta_time_stopwatch
-
-        time.stopwatch_stop(dt_sw)
-        dt_du := time.stopwatch_duration(dt_sw^)
-        delta_time := time.duration_seconds(dt_du)
-        application.time.delta_time = delta_time
+        glfw.PollEvents()
     }
 
     application_create_window :: proc(application: ^Application) -> bool
     {
+        if application.main_module.vtable.on_create_window == nil
+        {
+            log.verbose_error("Invalid on create window on vtable", application.main_module.vtable.on_create_window)
+            return false
+        }
+
         desc: ui.Window_Descriptor
-        application.main_module.vtable.on_application_create_window(&desc, context.allocator)
+        module_on_create_window(application.main_module, &desc, context.allocator)
         defer if desc.title != "" do delete(desc.title, context.allocator)
 
-        window, window_succ := ui.window_create(&desc, context.allocator)
+        window, window_succ := ui.window_create(&desc)
         if !window_succ do return false
 
-        commons.event_append(&window.common.event, desc.event_callback)
         application.ui.window = window
+
         return true
     }
 
@@ -154,12 +128,5 @@ Update Application.
     {
         if application == nil || !ui.window_is_valid(&application.ui.window) do return
         ui.window_destroy(&application.ui.window)
-    }
-
-    application_update_window :: proc(application: ^Application)
-    {
-        if application == nil || !ui.window_is_valid(&application.ui.window) do return
-        stop_running := !ui.window_update(&application.ui.window)
-        if stop_running do application.running = false
     }
 }

@@ -11,4 +11,14 @@ when api.IMPORT
     {
         application = p_application
     }
+
+    exit_cached :: proc()
+    {
+        exit_uncached(application)
+    }
+
+    exit :: proc{
+        exit_uncached,
+        exit_cached,
+    }
 }

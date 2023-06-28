@@ -16,33 +16,11 @@ when api.IMPORT
     @(default_calling_convention="odin")
     foreign navis
     {
-        /* Module */
+        /* Navis */
         @(link_prefix=PREFIX)
-        module_treat_path :: proc(path: string, allocator := context.allocator) -> string ---
+        run_from_paths :: proc(paths: ..string, allocator := context.allocator) ---
 
         @(link_prefix=PREFIX)
-        module_populate_vtable :: proc(vtable: ^Module_VTable) ---
-
-        @(link_prefix=PREFIX)
-        module_load_path :: proc(path: string, allocator := context.allocator) -> (Module, bool) #optional_ok ---
-
-        @(link_prefix=PREFIX)
-        module_unload_single :: proc(module: ^Module) -> bool ---
-
-        @(link_prefix=PREFIX)
-        module_load_paths :: proc(paths: ..string, allocator := context.allocator) -> ([]Module, bool) #optional_ok ---
-
-        @(link_prefix=PREFIX)
-        module_unload_multiple :: proc(modules: []Module) ---
-
-        /* Application */
-        @(link_prefix=PREFIX)
-        application_begin_paths :: proc(application: ^Application, paths: ..string, allocator := context.allocator, location := #caller_location) -> bool ---
-
-        @(link_prefix=PREFIX)
-        application_loop :: proc(application: ^Application) ---
-
-        @(link_prefix=PREFIX)
-        application_end :: proc(application: ^Application, location := #caller_location) -> bool ---
+        exit_uncached :: proc(application: ^Application) ---
     }
 }
