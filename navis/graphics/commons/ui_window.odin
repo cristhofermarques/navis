@@ -4,6 +4,7 @@ import "navis:api"
 
 when api.EXPORT
 {
+    import "navis:commons"
     import "navis:commons/log"
     import "core:strings"
     import "vendor:glfw"
@@ -63,7 +64,25 @@ when api.EXPORT
 
         glfw.DestroyWindow(window.handle)
         window.handle = nil
-
+        
         return true
+    }
+
+    @(export=api.SHARED, link_prefix=PREFIX)
+    ui_window_get_position :: proc(window: ^Window) -> (commons.Vector2_I32, bool) #optional_ok
+    {
+        if !ui_window_is_valid(window) do return {0, 0}, false
+        
+        x, y := glfw.GetWindowPos(window.handle)
+        return {i32(x), i32(y)}, true
+    }
+    
+    @(export=api.SHARED, link_prefix=PREFIX)
+    ui_window_get_size :: proc(window: ^Window) -> (commons.Vector2_I32, bool) #optional_ok
+    {
+        if !ui_window_is_valid(window) do return {-1, -1}, false
+
+        width, height := glfw.GetWindowSize(window.handle)
+        return {i32(width), i32(height)}, true
     }
 }

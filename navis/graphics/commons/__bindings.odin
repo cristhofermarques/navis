@@ -6,6 +6,8 @@ PREFIX :: "navis_graphics_"
 
 when api.IMPORT
 {
+    import "navis:commons"
+
     when ODIN_OS == .Windows do foreign import navis "binaries:navis.lib"
     when ODIN_OS == .Linux   do foreign import navis "binaries:navis.a"
 
@@ -21,6 +23,13 @@ when api.IMPORT
 
         @(link_prefix=PREFIX)
         ui_window_destroy :: proc(window: ^Window) -> bool ---
+        
+        @(link_prefix=PREFIX)
+        ui_window_get_position :: proc(window: ^Window) -> (commons.Vector2_I32, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        ui_window_get_size :: proc(window: ^Window) -> (commons.Vector2_I32, bool) #optional_ok ---
+
 
         // @(link_prefix=PREFIX)
         // ui_window_update :: proc(window : ^Window) -> bool ---

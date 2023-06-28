@@ -54,6 +54,8 @@ Nickname for core:linalg.Vector4f64
 */
 Vector4_F64 :: linear_algebra.Vector4f64
 
+Vector2_I32 :: [2]i32
+
 when api.PRECISION_32
 {
     Vector2 :: Vector2_F32
