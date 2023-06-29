@@ -1,6 +1,7 @@
 package navis
 
 import "navis:api"
+import "navis:graphics"
 import "navis:graphics/ui"
 import "core:dynlib"
 import "core:runtime"
@@ -23,6 +24,9 @@ Module_On_Set_Application_Cache :: #type proc(^Application)
 MODULE_ON_CREATE_WINDOW :: "navis_module_on_create_window"
 Module_On_Create_Window :: #type proc(^ui.Window_Descriptor, runtime.Allocator)
 
+MODULE_ON_CREATE_RENDERER :: "navis_module_on_create_renderer"
+Module_On_Create_Renderer :: #type proc(^graphics.Renderer_Descriptor)
+
 Module_VTable :: struct
 {
     on_load: Module_On_Load,
@@ -31,6 +35,7 @@ Module_VTable :: struct
     on_end: Module_On_End,
     on_set_application_cache: Module_On_Set_Application_Cache,
     on_create_window: Module_On_Create_Window,
+    on_create_renderer: Module_On_Create_Renderer,
 }
 
 Module :: struct
@@ -160,5 +165,17 @@ when api.EXPORT
 
     module_on_create_window :: proc{
         module_on_create_window_single,
+    }
+
+    /* On Create Renderer */
+
+    module_on_create_renderer_single :: proc(module: ^Module, descriptor: ^graphics.Renderer_Descriptor)
+    {
+        if module == nil || module.vtable.on_create_renderer == nil || descriptor == nil do return
+        module.vtable.on_create_renderer(descriptor)
+    }
+
+    module_on_create_renderer :: proc{
+        module_on_create_renderer_single,
     }
 }

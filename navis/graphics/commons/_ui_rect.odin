@@ -5,4 +5,4 @@ Rect_I32 :: distinct Rect(i32)
 Rect_F32 :: distinct Rect(f32)
 Rect_F64 :: distinct Rect(f64)
 
-Rect :: struct($T: typeid) {left, top, right, bottom: T}
+Rect :: struct($T: typeid) {x, y, width, height: T}

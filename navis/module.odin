@@ -44,10 +44,11 @@ Treats a module path, extension isn't required.
         module.vtable.on_unload = auto_cast dynlib.symbol_address(module.library, MODULE_ON_UNLOAD)
 
         module.vtable.on_begin = auto_cast dynlib.symbol_address(module.library, MODULE_ON_BEGIN)
-        module.vtable.on_begin = auto_cast dynlib.symbol_address(module.library, MODULE_ON_END)
+        module.vtable.on_end = auto_cast dynlib.symbol_address(module.library, MODULE_ON_END)
 
         module.vtable.on_set_application_cache = auto_cast dynlib.symbol_address(module.library, MODULE_ON_SET_APPLICATION_CACHE)
         module.vtable.on_create_window = auto_cast dynlib.symbol_address(module.library, MODULE_ON_CREATE_WINDOW)
+        module.vtable.on_create_renderer = auto_cast dynlib.symbol_address(module.library, MODULE_ON_CREATE_RENDERER)
     }
 
 /*

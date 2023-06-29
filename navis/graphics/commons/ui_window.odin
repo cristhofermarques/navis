@@ -20,7 +20,6 @@ when api.EXPORT
     @(export=api.SHARED, link_prefix=PREFIX)
     ui_window_create_from_descriptor :: proc(descriptor: ^Window_Descriptor) -> (Window, bool) #optional_ok
     {
-        log.verbose_debug("window")
         if descriptor == nil
         {
             log.verbose_error("Invalid window descriptor parameter", descriptor)
