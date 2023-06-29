@@ -1,8 +1,6 @@
 package navis
 
-import "commons/memory"
 import "graphics"
-import "graphics/commons"
 import "graphics/ui"
 import "core:time"
 
