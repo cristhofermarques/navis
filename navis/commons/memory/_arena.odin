@@ -16,7 +16,7 @@ Arena :: struct($T: typeid)
     {
         slots_begin, slots_end: rawptr,
         seek: uint,
-    }
+    },
 
     memory: struct
     {
@@ -58,6 +58,12 @@ arena_destroy :: proc(arena: ^Arena($T), allocator := context.allocator)
     if arena == nil do return
     mem.free(arena.memory.data, allocator)
     arena^ = {}
+}
+
+arena_clone :: proc(arena: ^Arena($T), allocator := context.allocator) -> (Arena(T), bool) #optional_ok
+{
+    if arena == nil do return {}, false
+    return arena_create(T, arena.capacity, allocator)
 }
 
 arena_sub_allocate :: proc "contextless" (arena: ^Arena($T)) -> ^T
@@ -140,13 +146,25 @@ arena_is_inside :: proc "contextless" (arena: ^Arena($T), slot: ^T) -> bool
     return slot >= arena.cache.slots_begin && slot <= arena.cache.slots_end
 }
 
+arena_is_full :: proc "contextless" (arena: ^Arena($T)) -> bool
+{
+    if arena == nil do return false
+    return arena.sub_allocations == arena.capacity
+}
+
+arena_is_empty :: proc "contextless" (arena: ^Arena($T)) -> bool
+{
+    if arena == nil do return false
+    return arena.sub_allocations == 0
+}
+
 arena_get_slot_index :: proc "contextless" (arena: ^Arena($T), slot: ^T) -> (uint, bool)
 {
     if arena == nil || slot == nil || !arena_is_inside(arena, slot) do return 0, false
 
     uptr_slot := cast(uintptr)slot
-    uptr_begin := cast(uintptr)arena.cache.slots_begin
-    begin_to_slot_size := uint(uptr_begin - uptr_slot)
+    uptr_begin := cast(uintptr)arena.slots
+    begin_to_slot_size := uint(max(uptr_begin, uptr_slot) - min(uptr_begin, uptr_slot))
     index := begin_to_slot_size / arena.slot_size
     return index, true
 }
