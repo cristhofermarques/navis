@@ -30,6 +30,12 @@ arena_create_typed :: proc($T: typeid, capacity: int, allocator := context.alloc
     return arena, true
 }
 
+arena_clone_typed :: proc(arena: ^Arena($T), allocator := context.allocator) -> (Arena(T), bool) #optional_ok
+{
+    if arena == nil do return {}, false
+    return arena_create_typed(T, len(arena.slots), allocator)
+}
+
 arena_destroy_typed :: proc(arena: ^Arena($T), allocator := context.allocator) -> bool
 {
     if arena == nil do return false
