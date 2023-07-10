@@ -2,7 +2,7 @@ package navis
 
 import "navis:api"
 
-when api.IMPORT
+when api.MODULE
 {
     import "graphics"
 

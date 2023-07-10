@@ -46,7 +46,7 @@ Module :: struct
     vtable: Module_VTable,
 }
 
-when api.EXPORT
+when api.IMPLEMENTATION
 {
     import "commons"
 

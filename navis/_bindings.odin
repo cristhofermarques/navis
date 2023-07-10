@@ -4,9 +4,7 @@ import "api"
 import "graphics/commons"
 import "graphics/ui"
 
-PREFIX :: "navis_"
-
-when api.IMPORT
+when api.BINDINGS
 {
     import "core:runtime"
 

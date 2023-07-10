@@ -2,9 +2,7 @@ package commons
 
 import "navis:api"
 
-PREFIX :: "navis_commons_"
-
-when api.IMPORT
+when api.BINDINGS
 { 
     when ODIN_OS == .Windows do foreign import navis "binaries:navis.lib"
     when ODIN_OS == .Linux   do foreign import navis "binaries:navis.a"

@@ -2,7 +2,7 @@ package graphics
 
 import "navis:api"
 
-when api.EXPORT
+when api.IMPLEMENTATION
 {
     import "bgfx"
     import "ui"

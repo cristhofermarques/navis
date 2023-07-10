@@ -2,7 +2,11 @@ package navis
 
 import "navis:api"
 
-when api.EXPORT
+/* Navis prefix */
+@(private)
+PREFIX :: "navis_"
+
+when api.IMPLEMENTATION
 {
     import "commons"
     import "commons/log"
@@ -24,7 +28,6 @@ when api.EXPORT
     exit_uncached :: proc(application: ^Application)
     {
         if application == nil do return
-        
         application.running = false
     }
 }

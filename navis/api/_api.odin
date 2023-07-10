@@ -24,15 +24,14 @@ BUILD DEFINES:
 */
 
 /*Runtime Kind of Navis, Shared/Static Library
-    * Used for Export Symbols
+* Used for Export Symbols
 */
-SHARED :: #config(NAVIS_API_SHARED, true)
-
+SHARED :: #config(NAVIS_EXPORT, true)
 /*Runtime Kind of Navis, Shared/Static Library*/
 STATIC :: !SHARED
 
 /*Include Implementation if 'true'*/
-EXPORT :: #config(NAVIS_API_EXPORT, false)
+EXPORT :: #config(NAVIS_IMPLEMENTATION, false)
 
 /*Include Bindinds if 'true'
     * Only used at Shared Library Runtime
@@ -51,3 +50,8 @@ VERBOSE :: #config(NAVIS_API_VERBOSE, false)
 
 PRECISION_64 :: #config(NAVIS_API_PRECISION_64, false)
 PRECISION_32 :: !PRECISION_64
+
+IMPLEMENTATION :: #config(NAVIS_IMPLEMENTATION, false)
+EXPORT2 :: #config(NAVIS_EXPORT, true)
+BINDINGS :: #config(NAVIS_BINDINGS, true)
+MODULE :: #config(NAVIS_MODULE, true)

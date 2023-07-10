@@ -2,7 +2,7 @@ package navis
 
 import "navis:api"
 
-when api.EXPORT
+when api.IMPLEMENTATION
 {
     import "navis:commons"
     import "core:dynlib"

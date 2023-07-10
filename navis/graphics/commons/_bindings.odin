@@ -2,9 +2,7 @@ package graphics_commons
 
 import "navis:api"
 
-PREFIX :: "navis_graphics_"
-
-when api.IMPORT
+when api.BINDINGS
 {
     import "navis:commons"
 

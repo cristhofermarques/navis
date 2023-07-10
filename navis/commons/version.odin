@@ -2,7 +2,7 @@ package commons
 
 import "navis:api"
 
-when api.EXPORT
+when api.IMPLEMENTATION
 {
     @(export=api.SHARED, link_prefix=PREFIX)
     version_major :: proc "contextless" () -> u32
