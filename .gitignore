@@ -7,3 +7,15 @@
 
 #Odin Language Server Json
 ols.json
+
+#Windows Binaries 
+*.exe
+*.lib
+*.dll
+*.exp
+*.pdb
+
+#Linux Binaries 
+*.out
+*.a
+*.so
