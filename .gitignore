@@ -15,7 +15,10 @@ ols.json
 *.exp
 *.pdb
 
+!bgfx_*.lib
+
 #Linux Binaries 
 *.out
 *.a
 *.so
+!bgfx_*.a

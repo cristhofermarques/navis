@@ -270,3 +270,13 @@ build_launcher :: proc(name, directory: string, descriptor: Module_Build_Descrip
     command_write_navis_build_descritor(&command, navis_descriptor)
     command_submit(&command)
 }
+
+get_module_build_config :: proc() -> Module_Build_Descriptor
+{
+    config: Module_Build_Descriptor
+    config.navis_build_mode = cli_has_flag(FLAG_NAVIS_BUILD_MODE_EMBEDDED) > -1 ? .Embedded : .Shared
+    config.navis_collection = cli_has_flag(FLAG_NAVIS_COLLECTION) > -1
+    config.debug = cli_has_flag(FLAG_DEBUG) > -1
+    config.verbose = cli_has_flag(FLAG_VERBOSE) > -1
+    return config
+}

@@ -1,35 +1,73 @@
 package tools
 
+import "core:fmt"
+
+FLAG_DEBUG :: "debug"
+FLAG_VERBOSE :: "debug"
+FLAG_COPY_BGFX_RESOURCES :: "copy-bgfx-resources"
+FLAG_BUILD_NAVIS_MODULE :: "module:navis"
+FLAG_NAVIS_COLLECTION :: "collection:navis"
+FLAG_NAVIS_BUILD_MODE_EMBEDDED :: "navis-build-mode:embedded"
+FLAG_BUILD_MODULE :: "module"
+FLAG_BUILD_LAUNCHER :: "launcher"
+FLAG_BUILD_SHADER :: "shader"
+FLAG_CLEAR_SHADER_MODULES :: "clear-shader-modules"
+
 main :: proc()
 {
-    debug := cli_has_flag("debug") > -1
-    verbose := cli_has_flag("verbose") > -1
-    navis_collection := cli_has_flag("collection:navis") > -1
-    navis_build_mode_embedded := cli_has_flag("navis-build-mode:embedded") > -1
+    if cli_help() do return
 
-    if cli_has_flag("module:navis") > -1 do build_navis_module(debug, verbose)
+    debug := cli_has_flag(FLAG_DEBUG) > -1
+    verbose := cli_has_flag(FLAG_VERBOSE) > -1
+    navis_collection := cli_has_flag(FLAG_NAVIS_COLLECTION) > -1
+    navis_build_mode_embedded := cli_has_flag(FLAG_NAVIS_BUILD_MODE_EMBEDDED) > -1
+    clear_shader_modules := cli_has_flag(FLAG_CLEAR_SHADER_MODULES) > -1
+    module_build_config := get_module_build_config()
+    shader_compile_options := bgfx_get_shader_compile_options()
 
-    if i := cli_has_pair_flag("module"); i > -1
+    //Copy bgfx resources
     {
-        descriptor: Module_Build_Descriptor
-        descriptor.navis_build_mode = navis_build_mode_embedded ? .Embedded : .Shared
-        descriptor.navis_collection = navis_collection
-        descriptor.debug = debug
-        descriptor.verbose = verbose
-
-        flag, key, val := cli_get_pair_flag("module")
-        build_module(key, val, descriptor)
+        if cli_has_flag(FLAG_COPY_BGFX_RESOURCES) > -1
+        {
+            bgfx_copy_binaries_for_windows()
+        }
     }
 
-    if i := cli_has_pair_flag("launcher"); i > -1
+    //Build navis module
     {
-        descriptor: Module_Build_Descriptor
-        descriptor.navis_build_mode = navis_build_mode_embedded ? .Embedded : .Shared
-        descriptor.navis_collection = navis_collection
-        descriptor.debug = debug
-        descriptor.verbose = verbose
+        if cli_has_flag(FLAG_BUILD_NAVIS_MODULE) > -1
+        {
+            build_navis_module(debug, verbose)
+        }
+    }
 
-        flag, key, val := cli_get_pair_flag("launcher")
-        build_launcher(key, val, descriptor)
+    //Build modules
+    {
+        indices := cli_get_pair_flag_index_list(FLAG_BUILD_MODULE, allocator = context.temp_allocator)
+        for i in indices
+        {
+            f, k, v := cli_unpack_pair_flag_argument(i)
+            build_module(k, v, module_build_config)
+        }
+    }
+
+    //Build launchers
+    {
+        indices := cli_get_pair_flag_index_list(FLAG_BUILD_LAUNCHER, allocator = context.temp_allocator)
+        for i in indices
+        {
+            f, k, v := cli_unpack_pair_flag_argument(i)
+            build_launcher(k, v, module_build_config)
+        }
+    }
+
+    //Shader compilation
+    {
+        indices := cli_get_pair_flag_index_list(FLAG_BUILD_SHADER, allocator = context.temp_allocator)
+        for i in indices
+        {
+            f, k, v := cli_unpack_pair_flag_argument(i)
+            bgfx_build_shader(k, v, shader_compile_options, clear_shader_modules)
+        }
     }
 }

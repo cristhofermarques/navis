@@ -101,7 +101,6 @@ when IMPLEMENTATION
     renderer_update :: proc(renderer: ^Renderer)
     {
         if renderer == nil do return
-
         bgfx.touch(renderer.view.id)
         bgfx.frame(false)
     }

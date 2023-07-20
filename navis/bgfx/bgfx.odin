@@ -1,4 +1,4 @@
-package bgfxColor_ABGR
+package bgfx
 
 Handle :: u16
 INVALID_HANDLE :: max(Handle)
@@ -653,12 +653,12 @@ TopologySort :: enum u32
 	Count,
 }
 
-ViewMode :: enum u32
+View_Mode :: enum u32
 {
 	Default,
 	Sequential,
-	DepthAscending,
-	DepthDescending,
+	Depth_Ascending,
+	Depth_Descending,
 	Count,
 }
 
@@ -935,11 +935,42 @@ Vertex_Layout_Handle :: struct {
     idx: u16,
 }
 
-when ODIN_OS == .Windows do foreign import bgfx{
-	"bgfx.lib",
-	"bx.lib",
-	"bimg.lib",
-	"bimg_decode.lib",
+when ODIN_OS == .Windows && ODIN_ARCH == .i386 && ODIN_DEBUG do foreign import bgfx{
+	"binaries/bgfx_windows_i386_debug.lib",
+	"binaries/bx_windows_i386_debug.lib",
+	"binaries/bimg_windows_i386_debug.lib",
+	"binaries/bimg_encode_windows_i386_debug.lib",
+	"binaries/bimg_decode_windows_i386_debug.lib",
+	"system:gdi32.lib",
+	"system:user32.lib",
+}
+
+when ODIN_OS == .Windows && ODIN_ARCH == .i386 && !ODIN_DEBUG do foreign import bgfx{
+	"binaries/bgfx_windows_i386_release.lib",
+	"binaries/bx_windows_i386_release.lib",
+	"binaries/bimg_windows_i386_release.lib",
+	"binaries/bimg_encode_windows_i386_release.lib",
+	"binaries/bimg_decode_windows_i386_release.lib",
+	"system:gdi32.lib",
+	"system:user32.lib",
+}
+
+when ODIN_OS == .Windows && ODIN_ARCH == .amd64 && ODIN_DEBUG do foreign import bgfx{
+	"binaries/bgfx_windows_amd64_debug.lib",
+	"binaries/bx_windows_amd64_debug.lib",
+	"binaries/bimg_windows_amd64_debug.lib",
+	"binaries/bimg_encode_windows_amd64_debug.lib",
+	"binaries/bimg_decode_windows_amd64_debug.lib",
+	"system:gdi32.lib",
+	"system:user32.lib",
+}
+
+when ODIN_OS == .Windows && ODIN_ARCH == .amd64 && !ODIN_DEBUG do foreign import bgfx{
+	"binaries/bgfx_windows_amd64_release.lib",
+	"binaries/bx_windows_amd64_release.lib",
+	"binaries/bimg_windows_amd64_release.lib",
+	"binaries/bimg_encode_windows_amd64_release.lib",
+	"binaries/bimg_decode_windows_amd64_release.lib",
 	"system:gdi32.lib",
 	"system:user32.lib",
 }
@@ -1253,7 +1284,7 @@ foreign bgfx
     set_view_clear_mrt :: proc "c" (_id: View_ID, _flags: Clear_Flags, _depth: f32, _stencil: u8, _c0: u8, _c1: u8, _c2: u8, _c3: u8, _c4: u8, _c5: u8, _c6: u8, _c7: u8) ---
 
     @(link_name="bgfx_set_view_mode")
-    set_view_mode :: proc "c" (_id: View_ID, _mode: ViewMode) ---
+    set_view_mode :: proc "c" (_id: View_ID, _mode: View_Mode) ---
 
     @(link_name="bgfx_set_view_frame_buffer")
     set_view_frame_buffer :: proc "c" (_id: View_ID, _handle: FrameBufferHandle) ---
