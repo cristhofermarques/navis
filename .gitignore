@@ -15,7 +15,17 @@ ols.json
 *.exp
 *.pdb
 
-!bgfx_*.lib
+!bgfx_windows_*.lib
+!bx_windows_*.lib
+!bimg_windows_*.lib
+!bimg_encode_windows_*.lib
+!bimg_decode_windows_*.lib
+
+!shaderc_windows_*.exe
+!geometryc_windows_*.exe
+!geometryv_windows_*.exe
+!texturec_windows_*.exe
+!texturev_windows_*.exe
 
 #Linux Binaries 
 *.out
