@@ -456,7 +456,7 @@ bgfx_set_shader_asset_entry :: proc(asset: ^navis.Shader_Asset, entry: navis.Sha
 bgfx_compose_shader_path :: proc(name: string, allocator := context.allocator) -> string
 {
     out_dir := cli_get_out_directory(context.temp_allocator)
-    shader_file, shader_file_err := strings.concatenate({name, ".json"}, context.temp_allocator)
+    shader_file, shader_file_err := strings.concatenate({name, ".bff"}, context.temp_allocator)
     if shader_file_err != .None do return ""
     return filepath.join({out_dir, shader_file}, allocator)
 }
@@ -513,7 +513,7 @@ bgfx_pack_shader_asset :: proc(name, path: string, options: Shader_Compile_Optio
     }
 
     shader_path := bgfx_compose_shader_path(name, context.temp_allocator)
-    serialize_to_file(shader_path, asset)
+    bgfx_serialize_shader_asset_to_file(shader_path, asset)
 }
 
 bgfx_clear_shader_asset :: proc(path: string)
@@ -540,11 +540,13 @@ bgfx_build_shader :: proc(name, path: string, options: Shader_Compile_Options = 
     if post_clear do bgfx_clear_shader_asset(path)
 }
 
-serialize_to_file :: proc(path: string, x: any)
+bgfx_serialize_shader_asset_to_file :: proc(path: string, asset: navis.Shader_Asset)
 {
-    data, error := json.marshal(x, allocator = context.temp_allocator)
-    if data == nil do return
-    write_file(path, data)
+    b: bytes.Buffer
+    bytes.buffer_init_allocator(&b, 0, 1024 * 256, context.temp_allocator)
+    defer bytes.buffer_destroy(&b)
+    bff.marshal(&b, asset)
+    write_file(path, bytes.buffer_to_bytes(&b))
 }
 
 read_file :: proc(path: string, allocator := context.allocator) -> []byte
@@ -557,12 +559,17 @@ read_file :: proc(path: string, allocator := context.allocator) -> []byte
 write_file :: proc(path: string, data: []byte)
 {
     if data == nil do return
-    fh, fh_err := os.open(path, os.O_CREATE)
+    fh, fh_err := os.open(path, os.is_file(path) ? os.O_WRONLY : os.O_CREATE)
     if fh_err != os.ERROR_NONE do return
     defer os.close(fh)
     os.write(fh, data)
 }
 
 import "../navis"
+import "core:encoding/base64"
+import "core:encoding/csv"
 import "core:encoding/json"
 import "core:runtime"
+
+import "core:bytes"
+import "../navis/bff"

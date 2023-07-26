@@ -114,8 +114,14 @@ when IMPLEMENTATION
     window_get_size :: proc(window: ^Window) -> (Vector2_I32, bool) #optional_ok
     {
         if !window_is_valid(window) do return {-1, -1}, false
-
         width, height := glfw.GetWindowSize(window.handle)
         return {i32(width), i32(height)}, true
+    }
+
+    @(export=EXPORT, link_prefix=PREFIX)
+    window_get_key :: proc(window: ^Window, key: Keyboard_Keys) -> Keyboard_Key_State
+    {
+        if !window_is_valid(window) do return .None
+        return cast(Keyboard_Key_State)glfw.GetKey(window.handle, i32(key))
     }
 }

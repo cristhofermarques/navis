@@ -27,6 +27,9 @@ when BINDINGS
         
         /* Shader */
         @(link_prefix=PREFIX)
+        shader_create_from_asset :: proc(asset: ^Shader_Asset, allocator := context.allocator) -> (Shader, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
         shader_create_from_descriptor :: proc(descriptor: ^Shader_Descriptor, allocator := context.allocator) -> (Shader, bool) #optional_ok ---
 
         @(link_prefix=PREFIX)
@@ -44,5 +47,23 @@ when BINDINGS
         
         @(link_prefix=PREFIX)
         window_get_size :: proc(window: ^Window) -> (Vector2_I32, bool) #optional_ok ---
+
+        @(link_prefix=PREFIX)
+        window_get_key :: proc(window: ^Window, key: Keyboard_Keys) -> Keyboard_Key_State ---
+        
+        @(link_prefix=PREFIX)
+        package_create_from_path :: proc(path: string, allocator := context.allocator) -> (Package, bool) ---
+
+        @(link_prefix=PREFIX)
+        package_read_asset :: proc(pkg: ^Package, path: string, allocator := context.allocator) -> []byte ---
+
+        @(link_prefix=PREFIX)
+        package_delete :: proc(pkg: ^Package, allocator := context.allocator) ---
+        
+        @(link_prefix=PREFIX)
+        streamer_create :: proc(paths: []string, references: []Package_Reference = nil, allocator := context.allocator) -> (Streamer, bool) #optional_ok ---
+        
+        @(link_prefix=PREFIX)
+        streamer_destroy :: proc(streamer: ^Streamer, allocator := context.allocator) ---
     }
 }

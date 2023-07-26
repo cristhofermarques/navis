@@ -1,6 +1,7 @@
 package navis
 
 import "bgfx"
+import "core:encoding/json"
 
 Vertex_Attribute :: enum
 {
@@ -46,7 +47,6 @@ Shader :: struct
 
 when IMPLEMENTATION
 {
-
     shader_module_create_from_memory :: proc(memory: ^bgfx.Memory) -> (Shader_Module, bool) #optional_ok
     {
         if memory == nil
@@ -160,6 +160,53 @@ when IMPLEMENTATION
         shader.uniforms = uniforms
 
         return shader, true
+    }
+
+    @(export=EXPORT, link_prefix=PREFIX)
+    shader_create_from_asset :: proc(asset: ^Shader_Asset, allocator := context.allocator) -> (Shader, bool) #optional_ok
+    {
+        create_shader_from_entry :: proc(renderer_type: bgfx.Renderer_Type, entry: Shader_Asset_Entry) -> (Shader_Module, Shader_Module, bool)
+        {
+            if entry.vertex == nil || entry.fragment == nil do return bgfx.INVALID_HANDLE, bgfx.INVALID_HANDLE, false
+            vs_mod, created_vs_mod := shader_module_create_from_data(raw_data(entry.vertex),   cast(u32)len(entry.vertex)   * size_of(byte))
+            fs_mod, created_fs_mod := shader_module_create_from_data(raw_data(entry.fragment), cast(u32)len(entry.fragment) * size_of(byte))
+            return vs_mod, fs_mod, created_vs_mod && created_fs_mod
+        }
+
+        success := false
+        vs_mod, fs_mod: Shader_Module
+        renderer_type := bgfx.get_renderer_type()
+        switch renderer_type
+        {
+            case .OpenGL:
+                vs_mod, fs_mod, success = create_shader_from_entry(renderer_type, asset.glsl_440)
+                if !success do return {}, false
+
+            case .OpenGL_ES:
+                vs_mod, fs_mod, success = create_shader_from_entry(renderer_type, asset.glsl_320_es)
+                if !success do return {}, false
+
+            case .Direct3D_9:
+                vs_mod, fs_mod, success = create_shader_from_entry(renderer_type, asset.hlsl_s_3_0)
+                if !success do return {}, false
+
+            case .Direct3D_11:
+                vs_mod, fs_mod, success = create_shader_from_entry(renderer_type, asset.hlsl_s_4_0)
+                if !success do return {}, false
+
+            case .Direct3D_12:
+                vs_mod, fs_mod, success = create_shader_from_entry(renderer_type, asset.hlsl_s_5_0)
+                if !success do return {}, false
+
+            case .Vulkan:
+                vs_mod, fs_mod, success = create_shader_from_entry(renderer_type, asset.spirv)
+                if !success do return {}, false
+
+            case .AGC, .Count, .GNM, .Metal, .No_Op, .NVM, .WebGPU:
+                return {}, false
+        }
+
+        return shader_create_from_modules(vs_mod, fs_mod, true, allocator)
     }
 
     @(export=EXPORT, link_prefix=PREFIX)

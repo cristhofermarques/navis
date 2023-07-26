@@ -4,6 +4,7 @@ import "navis:."
 import "core:strings"
 import "core:os"
 import "core:fmt"
+import "core:encoding/json"
 
 @(export, link_name=navis.MODULE_ON_CREATE_WINDOW)
 on_create_window :: proc(desc: ^navis.Window_Descriptor, allocator := context.allocator)
@@ -17,7 +18,7 @@ on_create_window :: proc(desc: ^navis.Window_Descriptor, allocator := context.al
 @(export, link_name=navis.MODULE_ON_CREATE_RENDERER)
 on_create_renderer :: proc(desc: ^navis.Renderer_Descriptor)
 {
-    desc.renderer_type = .Direct3D_11
+    desc.renderer_type = .Vulkan
     desc.vsync = true
 }
 
@@ -34,6 +35,8 @@ on_begin :: proc()
     navis.application.graphics.renderer.view.rect.rect = {0, 0, 0, 0,}
     navis.renderer_refresh()
 }    
+
+import "core:thread"
 
 @(export, link_name=navis.MODULE_ON_END)
 on_end :: proc()
