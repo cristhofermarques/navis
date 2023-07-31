@@ -16,6 +16,12 @@ Arena :: struct($T: typeid)
     slots: []Arena_Slot(T),
 }
 
+Untyped_Arena :: struct
+{
+    seek, sub_allocations, slot_size, slot_data_offset: int,
+    slots: runtime.Raw_Slice,
+}
+
 arena_create_typed :: proc($T: typeid, capacity: int, allocator := context.allocator) -> (Arena(T), bool) #optional_ok
 {
     if capacity < 1 do return {}, false
@@ -29,6 +35,33 @@ arena_create_typed :: proc($T: typeid, capacity: int, allocator := context.alloc
     return arena, true
 }
 
+untyped_arena_of :: proc "contextless" ($T: typeid) -> (int, int)
+{
+    return size_of(Arena_Slot(T)), cast(int)offset_of(Arena_Slot(T), data)
+}
+
+arena_create_untyped :: proc(slot_size, slot_data_offset, capacity: int, allocator := context.allocator) -> (Untyped_Arena, bool) #optional_ok
+{
+    if slot_size < 1 || slot_data_offset < 1 || capacity < 1 do return {}, false
+    slots_data_size := slot_size * capacity
+    slots_data, slots_data_allocation_error := mem.alloc(slots_data_size, allocator = allocator)
+    if slots_data_allocation_error != .None do return {}, false
+    arena: Untyped_Arena
+    arena.slots.data = slots_data
+    arena.slots.len = capacity
+    arena.slot_size = slot_size
+    arena.slot_data_offset = slot_data_offset
+    arena.seek = 0
+    return arena, true
+}
+
+arena_destroy_untyped :: proc(arena: ^Untyped_Arena, allocator := context.allocator)
+{
+    if arena == nil do return
+    mem.free(arena.slots.data, allocator)
+    arena^ = {}
+}
+
 arena_clone_typed :: proc(arena: ^Arena($T), allocator := context.allocator) -> (Arena(T), bool) #optional_ok
 {
     if arena == nil do return {}, false
@@ -38,10 +71,8 @@ arena_clone_typed :: proc(arena: ^Arena($T), allocator := context.allocator) -> 
 arena_destroy_typed :: proc(arena: ^Arena($T), allocator := context.allocator) -> bool
 {
     if arena == nil do return false
-
     delete(arena.slots, allocator)
     arena^ = {}
-
     return true
 }
 
@@ -316,4 +347,79 @@ collection_is_full :: proc "contextless" (collection: ^Collection($T)) -> bool
         if !arena_is_full(arena) do return false
     }
     return true
+}
+
+Array_Arena :: struct($Type: typeid, $Capacity: int)
+{
+    seek, sub_allocations: int,
+    slots: [Capacity]Arena_Slot(Type),
+}
+
+array_arena_sub_allocate :: proc "contextless" (arena: ^Array_Arena($Type, $Capacity)) -> ^Type
+{
+    if array_arena_is_full(arena) do return nil
+    
+    //Cache
+    if seek := &arena.slots[arena.seek]; !seek.used
+    {
+        seek.used = true
+        data := &seek.data
+        arena.sub_allocations += 1
+        if !array_arena_is_full(arena) do arena.seek += 1
+        return data
+    }
+
+    //Search
+    for i := 0; i < len(arena.slots); i += 1
+    {
+        seek := &arena.slots[i]
+        if seek.used do continue
+        seek.used = true
+        data := &seek.data
+        arena.sub_allocations += 1
+        arena.seek = i
+        if !array_arena_is_full(arena) do arena.seek += 1
+        return data
+    }
+    return nil
+}
+
+array_arena_free :: proc "contextless" (arena: ^Array_Arena($Type, $Capacity), data: ^Type) -> bool
+{
+    index := array_arena_index_of(arena, data)
+    if index < 0 do return false
+
+    slot := &arena.slots[index]
+    slot.used = false
+    arena.sub_allocations -= 1
+    if index < arena.seek do arena.seek = index
+    return true
+}
+
+array_arena_is_full :: proc "contextless" (arena: ^Array_Arena($Type, $Capacity)) -> bool
+{
+    if arena == nil do return false
+    return arena.sub_allocations == len(arena.slots)
+}
+
+array_arena_is_in :: proc "contextless" (arena: ^Array_Arena($Type, $Capacity), data: ^Type) -> bool
+{
+    if arena == nil || data == nil do return false
+    begin := &arena.slots[0]
+    end := mem.ptr_offset(begin, len(arena.slots))
+
+    uptr_data := uintptr(data)
+    uptr_begin := uintptr(begin)
+    uptr_end := uintptr(end)
+
+    return uptr_data >= uptr_begin || uptr_data < uptr_end
+}
+
+array_arena_index_of :: proc "contextless" (arena: ^Array_Arena($Type, $Capacity), data: ^Type) -> int
+{
+    if arena == nil || data == nil do return -1
+    uptr_begin := cast(uintptr)&arena.slots[0]
+    uptr_data := cast(uintptr)data
+    begin_to_data_size := max(uptr_begin, uptr_data) - min(uptr_begin, uptr_data)
+    return int(begin_to_data_size) / size_of(Arena_Slot(T))
 }

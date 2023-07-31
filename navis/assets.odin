@@ -1,5 +1,7 @@
 package navis
 
+import "bff"
+
 Shader_Asset_Entry :: struct
 {
     vertex, fragment: []byte,
@@ -32,4 +34,20 @@ Shader_Asset :: struct
     spirv_14_11,
     spirv_15_12,
     spirv_16_13: Shader_Asset_Entry,
+}
+
+/*
+*/
+shader_asset_create :: proc{
+    shader_asset_create_from_bff,
+}
+
+/*
+NOTE(cris): there is no allocation.
+*/
+shader_asset_create_from_bff :: proc(data: []byte) -> Shader_Asset
+{
+    asset: Shader_Asset
+    bff.unmarshal(data, &asset)
+    return asset
 }

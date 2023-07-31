@@ -5,6 +5,8 @@ BINDINGS :: #config(NAVIS_BINDINGS, true)
 MODULE :: #config(NAVIS_MODULE, true)
 EXPORT :: #config(NAVIS_EXPORT, false)
 
+//NOTE(cris): this constants cant be exposed.
+
 @(private)
 VERBOSE :: #config(NAVIS_VERBOSE, true)
 
@@ -23,12 +25,21 @@ VERSION_MINOR :: #config(NAVIS_VERSION_MAJOR, 7)
 @(private)
 VERSION_PATCH :: #config(NAVIS_VERSION_MAJOR, 0)
 
-/* Navis prefix */
+/* Bindings prefix */
 @(private)
 PREFIX :: "navis_"
 
+/* Navis */
+
+run :: proc{
+    run_from_paths,
+}
+
 when IMPLEMENTATION
 {
+    /*
+    TODO(cris): documentation
+    */
     @(export=EXPORT, link_prefix=PREFIX)
     run_from_paths :: proc(paths: ..string, allocator := context.allocator)
     {
@@ -38,35 +49,20 @@ when IMPLEMENTATION
         application_loop(&application)
     }
     
+    
     @(export=EXPORT, link_prefix=PREFIX)
-    exit_uncached :: proc(application: ^Application)
+    exit_uncached :: proc(application: ^Application)//NOTE(cris): this proc can be inline.
     {
         if application == nil do return
         application.running = false
     }
-
 }
 
-run :: proc{
-    run_from_paths,
-}
+/* Version */
 
 Version :: struct
 {
     major, minor, patch: u32,
-}
-
-version_pack :: proc "contextless" (major, minor, patch: u32) -> Version
-{
-    return Version{major, minor, patch}
-}
-
-version_unpack :: proc "contextless" (version: Version) -> (major, minor, patch: u32)
-{
-    major = version.major
-    minor = version.minor
-    patch = version.patch
-    return
 }
 
 when IMPLEMENTATION
@@ -78,7 +74,9 @@ when IMPLEMENTATION
     }
 }
 
-Application_UI :: struct
+/* Application */
+
+Application_UI :: struct //TODO(cris): put it inside 'Application_Graphics'
 {
     window: Window,
 }
@@ -97,9 +95,71 @@ Application :: struct
     graphics: Application_Graphics,
 }
 
+/* Module */
+
+import "core:dynlib"
+import "core:runtime"
+
+MODULE_NAME_OF :: "navis_module_name_of"
+Module_Name_Of :: #type proc(^Module, runtime.Allocator) -> string
+
+MODULE_ON_LOAD :: "navis_module_on_load"
+Module_On_Load :: #type proc(^Module)
+
+MODULE_ON_UNLOAD :: "navis_module_on_unload"
+Module_On_Unload :: #type proc()
+
+MODULE_ON_BEGIN :: "navis_module_on_begin"
+Module_On_Begin :: #type proc()
+
+MODULE_ON_END   :: "navis_module_on_end"
+Module_On_End :: #type proc()
+
+MODULE_ON_SET_MODULE_CACHE :: "navis_module_on_set_module_cache"
+Module_On_Set_Module_Cache :: #type proc(^Module)
+
+MODULE_ON_SET_APPLICATION_CACHE :: "navis_module_on_set_application_cache"
+Module_On_Set_Application_Cache :: #type proc(^Application)
+
+MODULE_ON_CREATE_WINDOW :: "navis_module_on_create_window"
+Module_On_Create_Window :: #type proc(^Window_Descriptor, runtime.Allocator)
+
+MODULE_ON_CREATE_RENDERER :: "navis_module_on_create_renderer"
+Module_On_Create_Renderer :: #type proc(^Renderer_Descriptor)
+
+Module :: struct
+{
+    library: dynlib.Library,
+    name_of: Module_Name_Of,
+    on_load: Module_On_Load,
+    on_unload: Module_On_Unload,
+    on_begin: Module_On_Begin,
+    on_end: Module_On_End,
+    on_set_module_cache: Module_On_Set_Module_Cache,
+    on_set_application_cache: Module_On_Set_Application_Cache,
+    on_create_window: Module_On_Create_Window,
+    on_create_renderer: Module_On_Create_Renderer,
+}
+
 when MODULE
 {
+    /* TODO(cris): doc */
     application: ^Application
+
+    /* TODO(cris): doc */
+    module: ^Module
+
+    @(export=ODIN_BUILD_MODE==.Dynamic, link_name=MODULE_NAME_OF)
+    navis_module_name_of :: proc(id: typeid, allocator := context.allocator) -> string
+    {
+        return get_name_of(id, allocator)
+    }
+
+    @(export=ODIN_BUILD_MODE==.Dynamic, link_name=MODULE_ON_SET_MODULE_CACHE)
+    navis_module_on_set_module_cache :: proc(module_: ^Module)
+    {
+        module = module_
+    }
 
     @(export=ODIN_BUILD_MODE==.Dynamic, link_name=MODULE_ON_SET_APPLICATION_CACHE)
     navis_module_on_set_application_cache :: proc(p_application: ^Application)
@@ -158,6 +218,8 @@ Begins an Application with provided paths.
             log_verbose_error("Failed to load modules")
             return false
         }
+
+        module_on_set_module_cache(modules)
 
         //Setup application
         application.running = true
@@ -320,42 +382,6 @@ Ends Application.
     }
 }
 
-import "core:dynlib"
-import "core:runtime"
-
-MODULE_ON_LOAD :: "navis_module_on_load"
-Module_On_Load :: #type proc(^Module)
-
-MODULE_ON_UNLOAD :: "navis_module_on_unload"
-Module_On_Unload :: #type proc()
-
-MODULE_ON_BEGIN :: "navis_module_on_begin"
-Module_On_Begin :: #type proc()
-
-MODULE_ON_END   :: "navis_module_on_end"
-Module_On_End :: #type proc()
-
-MODULE_ON_SET_APPLICATION_CACHE :: "navis_module_on_set_application_cache"
-Module_On_Set_Application_Cache :: #type proc(^Application)
-
-MODULE_ON_CREATE_WINDOW :: "navis_module_on_create_window"
-Module_On_Create_Window :: #type proc(^Window_Descriptor, runtime.Allocator)
-
-MODULE_ON_CREATE_RENDERER :: "navis_module_on_create_renderer"
-Module_On_Create_Renderer :: #type proc(^Renderer_Descriptor)
-
-Module :: struct
-{
-    library: dynlib.Library,
-    on_load: Module_On_Load,
-    on_unload: Module_On_Unload,
-    on_begin: Module_On_Begin,
-    on_end: Module_On_End,
-    on_set_application_cache: Module_On_Set_Application_Cache,
-    on_create_window: Module_On_Create_Window,
-    on_create_renderer: Module_On_Create_Renderer,
-}
-
 when IMPLEMENTATION
 {
     import "core:strings"
@@ -403,12 +429,15 @@ Obs: Library extension (.dll/.so) not required.
         module: Module
         module.library = library
 
+        module.name_of = auto_cast dynlib.symbol_address(module.library, MODULE_NAME_OF)
+
         module.on_load = auto_cast dynlib.symbol_address(module.library, MODULE_ON_LOAD)
         module.on_unload = auto_cast dynlib.symbol_address(module.library, MODULE_ON_UNLOAD)
 
         module.on_begin = auto_cast dynlib.symbol_address(module.library, MODULE_ON_BEGIN)
         module.on_end = auto_cast dynlib.symbol_address(module.library, MODULE_ON_END)
 
+        module.on_set_module_cache = auto_cast dynlib.symbol_address(module.library, MODULE_ON_SET_MODULE_CACHE)
         module.on_set_application_cache = auto_cast dynlib.symbol_address(module.library, MODULE_ON_SET_APPLICATION_CACHE)
         module.on_create_window = auto_cast dynlib.symbol_address(module.library, MODULE_ON_CREATE_WINDOW)
         module.on_create_renderer = auto_cast dynlib.symbol_address(module.library, MODULE_ON_CREATE_RENDERER)
@@ -547,6 +576,25 @@ Unload multiple modules.
     module_on_end :: proc{
         module_on_end_single,
         module_on_end_multiple,
+    }
+
+    /* On Set Module Cache */
+
+    module_on_set_module_cache :: proc{
+        module_on_set_module_cache_single,
+        module_on_set_module_cache_multiple,
+    }
+
+    module_on_set_module_cache_single :: proc(module: ^Module)
+    {
+        if module == nil || module.on_set_module_cache == nil do return
+        module.on_set_module_cache(module)
+    }
+
+    module_on_set_module_cache_multiple :: proc(modules: []Module)
+    {
+        if modules == nil do return
+        for &module in modules do module_on_set_module_cache_single(&module)
     }
 
     /* On Set Application Cache */

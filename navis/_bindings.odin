@@ -17,9 +17,12 @@ when BINDINGS
         /* Navis */
         @(link_prefix=PREFIX)
         run_from_paths :: proc(paths: ..string, allocator := context.allocator) ---
-
+        
         @(link_prefix=PREFIX)
         exit_uncached :: proc(application: ^Application) ---
+        
+        // @(link_prefix=PREFIX)
+        // ecs_register_component_from_module :: proc(ecs: ^ECS, module: ^Module, id: typeid) ---
 
         /* Renderer */
         @(link_prefix=PREFIX)
@@ -38,19 +41,20 @@ when BINDINGS
         /* Window */
         @(link_prefix=PREFIX)
         window_create_from_descriptor :: proc(descriptor: ^Window_Descriptor) -> (Window, bool) #optional_ok ---
-
+        
         @(link_prefix=PREFIX)
         window_destroy :: proc(window: ^Window) -> bool ---
         
         @(link_prefix=PREFIX)
-        window_get_position :: proc(window: ^Window) -> (Vector2_I32, bool) #optional_ok ---
+        window_get_position :: proc(window: ^Window) -> (vec2_i32, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
-        window_get_size :: proc(window: ^Window) -> (Vector2_I32, bool) #optional_ok ---
-
+        window_get_size :: proc(window: ^Window) -> (vec2_i32, bool) #optional_ok ---
+        
         @(link_prefix=PREFIX)
         window_get_key :: proc(window: ^Window, key: Keyboard_Keys) -> Keyboard_Key_State ---
         
+        /* Streamer */
         @(link_prefix=PREFIX)
         package_create_from_path :: proc(path: string, allocator := context.allocator) -> (Package, bool) ---
 

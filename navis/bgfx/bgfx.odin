@@ -586,14 +586,13 @@ Texture_Format :: enum u32
 	Count,
 }
 
-UniformType :: enum u32
+Uniform_Type :: enum u32
 {
 	Sampler,
 	End,
 	Vec4,
 	Mat3,
 	Mat4,
-	Count,
 }
 
 Backbuffer_Ratio :: enum u32
@@ -809,10 +808,10 @@ TextureInfo :: struct {
 	cubeMap : u8,
 }
 
-UniformInfo :: struct {
-	name : [256]u8 ,
-	type_ : UniformType,
-	num 	:	u16,
+Uniform_Info :: struct {
+	name: [256]u8,
+	type: Uniform_Type,
+	num: u16,
 }
 
 Attachment :: struct {
@@ -955,17 +954,18 @@ when ODIN_OS == .Windows && ODIN_ARCH == .i386 && !ODIN_DEBUG do foreign import 
 	"system:user32.lib",
 }
 
-when ODIN_OS == .Windows && ODIN_ARCH == .amd64 && ODIN_DEBUG do foreign import bgfx{
-	"binaries/bgfx_windows_amd64_debug.lib",
-	"binaries/bx_windows_amd64_debug.lib",
-	"binaries/bimg_windows_amd64_debug.lib",
-	"binaries/bimg_encode_windows_amd64_debug.lib",
-	"binaries/bimg_decode_windows_amd64_debug.lib",
-	"system:gdi32.lib",
-	"system:user32.lib",
-}
+// when ODIN_OS == .Windows && ODIN_ARCH == .amd64 && ODIN_DEBUG do foreign import bgfx{
+// 	"binaries/bgfx_windows_amd64_debug.lib",
+// 	"binaries/bx_windows_amd64_debug.lib",
+// 	"binaries/bimg_windows_amd64_debug.lib",
+// 	"binaries/bimg_encode_windows_amd64_debug.lib",
+// 	"binaries/bimg_decode_windows_amd64_debug.lib",
+// 	"system:gdi32.lib",
+// 	"system:user32.lib",
+// 	"system:libcmtd.lib",
+// }
 
-when ODIN_OS == .Windows && ODIN_ARCH == .amd64 && !ODIN_DEBUG do foreign import bgfx{
+when ODIN_OS == .Windows && ODIN_ARCH == .amd64 do foreign import bgfx{
 	"binaries/bgfx_windows_amd64_release.lib",
 	"binaries/bx_windows_amd64_release.lib",
 	"binaries/bimg_windows_amd64_release.lib",
@@ -1239,10 +1239,10 @@ foreign bgfx
     destroy_frame_buffer :: proc "c" (_handle: FrameBufferHandle) ---
 
     @(link_name="bgfx_create_uniform")
-    create_uniform :: proc "c" (_name: cstring, _type: UniformType, _num: u16) -> Uniform_Handle ---
+    create_uniform :: proc "c" (_name: cstring, _type: Uniform_Type, _num: u16) -> Uniform_Handle ---
 
     @(link_name="bgfx_get_uniform_info")
-    get_uniform_info :: proc "c" (_handle: Uniform_Handle, _info: ^UniformInfo) ---
+    get_uniform_info :: proc "c" (_handle: Uniform_Handle, _info: ^Uniform_Info) ---
 
     @(link_name="bgfx_destroy_uniform")
     destroy_uniform :: proc "c" (_handle: Uniform_Handle) ---

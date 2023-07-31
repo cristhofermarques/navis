@@ -26,7 +26,7 @@ on_create_renderer :: proc(desc: ^navis.Renderer_Descriptor)
 on_begin :: proc()
 {
     fmt.println("Begin")
-
+    
     navis.application.graphics.renderer.view.id = 0
     navis.application.graphics.renderer.view.clear.flags = {.Color, .Depth}
     navis.application.graphics.renderer.view.clear.color = {255, 255, 55, 55}
@@ -34,9 +34,7 @@ on_begin :: proc()
     navis.application.graphics.renderer.view.rect.ratio = .Equal
     navis.application.graphics.renderer.view.rect.rect = {0, 0, 0, 0,}
     navis.renderer_refresh()
-}    
-
-import "core:thread"
+}
 
 @(export, link_name=navis.MODULE_ON_END)
 on_end :: proc()

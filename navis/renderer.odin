@@ -105,11 +105,10 @@ when IMPLEMENTATION
         //Making renderer
         renderer: Renderer
 
-        shader_data, sd_s := os.read_entire_file("editor/package/.shaders/cubes.json", context.temp_allocator)
-        asset := new(Shader_Asset, context.temp_allocator)
-        json.unmarshal(shader_data, asset, allocator = context.temp_allocator)
+        shader_data, sd_s := os.read_entire_file("editor/package/.shaders/cubes.bff", context.temp_allocator)
+        asset := shader_asset_create(shader_data)
     
-        shader, suc := shader_create_from_asset(asset)
+        shader, suc := shader_create_from_asset(&asset)
         renderer.shader = shader
 
         vl: bgfx.Vertex_Layout
@@ -127,10 +126,18 @@ when IMPLEMENTATION
         mesh, mesh_suc := mesh_create_from_descriptor(&md)
         renderer.mesh = mesh
 
+        for u in shader.uniforms
+        {
+            info: bgfx.Uniform_Info
+            bgfx.get_uniform_info(u, &info)
+            fmt.println(u, cast(string)info.name[0:])
+        }
+
         return renderer, true
     }
 
     import "core:os"
+    import "core:fmt"
     import "core:encoding/json"
 
     renderer_create :: proc{
@@ -155,15 +162,18 @@ when IMPLEMENTATION
     {
         if renderer == nil do return
 
-        
         bgfx.touch(renderer.view.id)
+
+        u_color := vec4_f32{0.4, 0.5, 0.6, 1}
+        u_info: bgfx.Uniform_Info
+        bgfx.get_uniform_info(renderer.shader.uniforms[0], & u_info)
+        bgfx.set_uniform(renderer.shader.uniforms[0], &u_color, u_info.num)
         
         bgfx.set_state(u64(bgfx.StateFlags.WriteRgb | bgfx.StateFlags.WriteA), 0)
         bgfx.set_vertex_buffer(0, renderer.mesh.vertex_buffer, 0, cast(u32)len(verts))
         bgfx.set_index_buffer(renderer.mesh.index_buffer, 0, 6)
         bgfx.submit(renderer.view.id, renderer.shader.program, 0.0, 0)
-
-        
+   
         bgfx.frame(false)
 
         renderer.status.frame_count += 1

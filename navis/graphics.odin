@@ -3,6 +3,13 @@ package navis
 import "bgfx"
 import "core:encoding/json"
 
+/*
+    Notes:
+    * If procedure calls bgfx, it needs to be only navis side.
+*/
+
+/* Vertex */
+
 Vertex_Attribute :: enum
 {
     Vector2_F32 = size_of(Vector2_F32),
@@ -10,7 +17,7 @@ Vertex_Attribute :: enum
     Vector4_F32 = size_of(Vector4_F32),
 }
 
-vertex_attribute_get_size :: #force_inline proc(attribute: Vertex_Attribute) -> u64
+vertex_attribute_get_size :: #force_inline proc "contextless" (attribute: Vertex_Attribute) -> u64
 {
     return u64(attribute)
 }
@@ -27,6 +34,7 @@ Vertex_Binding :: struct
     attributes: []Vertex_Attribute,
 }
 
+/* Shader */
 
 Shader_Module :: bgfx.Shader_Handle
 
