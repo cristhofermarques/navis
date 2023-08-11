@@ -118,3 +118,5 @@ math_distance :: linear_algebra.distance
 Nickname for core:linalg.dot
 */
 math_dot :: linear_algebra.dot
+
+math_clamp :: linear_algebra.clamp

@@ -1,5 +1,10 @@
 package navis
 
+import "core:intrinsics"
+import "core:runtime"
+import "core:thread"
+import "core:os"
+
 IMPLEMENTATION :: #config(NAVIS_IMPLEMENTATION, false)
 BINDINGS :: #config(NAVIS_BINDINGS, true)
 MODULE :: #config(NAVIS_MODULE, true)
@@ -31,6 +36,10 @@ PREFIX :: "navis_"
 
 /* Navis */
 
+
+/*
+TODO: documentation
+*/
 run :: proc{
     run_from_paths,
 }
@@ -60,6 +69,7 @@ when IMPLEMENTATION
 
 /* Version */
 
+
 Version :: struct
 {
     major, minor, patch: u32,
@@ -67,6 +77,9 @@ Version :: struct
 
 when IMPLEMENTATION
 {
+/*
+Return navis version
+*/
     @(export=EXPORT, link_prefix=PREFIX)
     version :: proc "contextless" () -> Version
     {
@@ -75,6 +88,7 @@ when IMPLEMENTATION
 }
 
 /* Application */
+
 
 Application_UI :: struct //TODO(cris): put it inside 'Application_Graphics'
 {
@@ -93,12 +107,13 @@ Application :: struct
     modules: []Module,
     ui: Application_UI,
     graphics: Application_Graphics,
+    ecs: ECS,
+    pool: thread.Pool,
 }
 
 /* Module */
 
 import "core:dynlib"
-import "core:runtime"
 
 MODULE_NAME_OF :: "navis_module_name_of"
 Module_Name_Of :: #type proc(^Module, runtime.Allocator) -> string
@@ -149,11 +164,11 @@ when MODULE
     /* TODO(cris): doc */
     module: ^Module
 
-    @(export=ODIN_BUILD_MODE==.Dynamic, link_name=MODULE_NAME_OF)
-    navis_module_name_of :: proc(id: typeid, allocator := context.allocator) -> string
-    {
-        return get_name_of(id, allocator)
-    }
+    // @(export=ODIN_BUILD_MODE==.Dynamic, link_name=MODULE_NAME_OF)
+    // navis_module_name_of :: proc(id: typeid, allocator := context.allocator) -> string
+    // {
+    //     return get_name_of(id, allocator)
+    // }
 
     @(export=ODIN_BUILD_MODE==.Dynamic, link_name=MODULE_ON_SET_MODULE_CACHE)
     navis_module_on_set_module_cache :: proc(module_: ^Module)
@@ -185,6 +200,36 @@ when MODULE
     renderer_refresh :: proc{
         renderer_refresh_uncached,
         renderer_refresh_cached,
+    }
+
+    entity_create :: proc() -> ^Entity
+    {
+        return ecs_create_entity(&application.ecs)
+    }
+
+    component_register :: proc($T: typeid, chunk_slots: int) -> bool
+    {
+        return ecs_register_component(&application.ecs, T, chunk_slots)
+    }
+
+    component_on_create :: proc(on_create: proc(^$T, ^Entity)) -> bool
+    {
+        return ecs_set_component_on_create(&application.ecs, T, on_create)
+    }
+
+    component_on_destroy :: proc(on_destroy: proc(^$T, ^Entity)) -> bool
+    {
+        return ecs_set_component_on_destroy(&application.ecs, T, on_destroy)
+    }
+
+    component_add :: proc($T: typeid, entity: ^Entity) -> ^T
+    {
+        return ecs_add_component(&application.ecs, entity, T)
+    }
+
+    system_register :: proc(system: proc(^$T)) -> bool
+    {
+        return ecs_register_system(&application.ecs, T, system)
     }
 }
 
@@ -249,6 +294,22 @@ Begins an Application with provided paths.
             log_verbose_error("Failed to create renderer")
             return false
         }
+
+        //Create ecs
+        created_ecs := application_create_ecs(application)
+        if !created_ecs
+        {
+            log_verbose_error("Failed to create ecs")
+            return false
+        }
+
+        //Create pool
+        created_pool := application_create_pool(application)
+        if !created_pool
+        {
+            log_verbose_error("Failed to create pool")
+            return false
+        }
         
         //On init
         module_on_begin(application.modules)
@@ -287,6 +348,12 @@ Ends Application.
         //Finalize renderer
         application_destroy_renderer(application)
 
+        //Destroy ecs
+        application_destroy_ecs(application)
+
+        //Destroy pool
+        application_destroy_pool(application)
+
         //Unload modules
         if application.modules != nil do module_unload(application.modules)
         application.modules = nil
@@ -306,6 +373,9 @@ Ends Application.
         //Update glfw
         glfw.PollEvents()
         
+        //Update ecs
+        ecs_update(&application.ecs, &application.pool)
+
         //Update renderer
         renderer_update(&application.graphics.renderer)
     }
@@ -379,6 +449,37 @@ Ends Application.
         }
 
         renderer_destroy(&application.graphics.renderer)
+    }
+
+    application_create_pool :: proc(application: ^Application) -> bool
+    {
+        if application == nil do return false
+        thread.pool_init(&application.pool, context.allocator, os.processor_core_count())
+        thread.pool_start(&application.pool)
+        return true
+    }
+
+    application_destroy_pool :: proc(application: ^Application) -> bool
+    {
+        if application == nil do return false
+        thread.pool_finish(&application.pool)
+        thread.pool_destroy(&application.pool)
+        return true
+    }
+
+    application_create_ecs :: proc(application: ^Application) -> bool
+    {
+        if application == nil do return false
+        ecs, created := ecs_create(100, 2, 2, context.allocator)
+        application.ecs = ecs
+        return created
+    }
+
+    application_destroy_ecs :: proc(application: ^Application) -> bool
+    {
+        if application == nil do return false
+        ecs_destroy(&application.ecs)
+        return true
     }
 }
 
