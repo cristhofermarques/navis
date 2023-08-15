@@ -46,10 +46,10 @@ when BINDINGS
         window_destroy :: proc(window: ^Window) -> bool ---
         
         @(link_prefix=PREFIX)
-        window_get_position :: proc(window: ^Window) -> (vec2_i32, bool) #optional_ok ---
+        window_get_position :: proc(window: ^Window) -> ([2]i32, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
-        window_get_size :: proc(window: ^Window) -> (vec2_i32, bool) #optional_ok ---
+        window_get_size :: proc(window: ^Window) -> ([2]i32, bool) #optional_ok ---
         
         @(link_prefix=PREFIX)
         window_get_key :: proc(window: ^Window, key: Keyboard_Keys) -> Keyboard_Key_State ---

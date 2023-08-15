@@ -1,5 +1,6 @@
 package navis
 
+import "ecs"
 import "core:intrinsics"
 import "core:runtime"
 import "core:thread"
@@ -107,7 +108,7 @@ Application :: struct
     modules: []Module,
     ui: Application_UI,
     graphics: Application_Graphics,
-    ecs: ECS,
+    ecs: ecs.ECS,
     pool: thread.Pool,
 }
 
@@ -202,35 +203,40 @@ when MODULE
         renderer_refresh_cached,
     }
 
-    entity_create :: proc() -> ^Entity
+    create_entity :: #force_inline proc() -> ecs.Entity_ID
     {
-        return ecs_create_entity(&application.ecs)
+        return ecs.create_entity(&application.ecs)
     }
 
-    component_register :: proc($T: typeid, chunk_slots: int) -> bool
+    destroy_entity :: #force_inline proc(id: ecs.Entity_ID) -> bool
     {
-        return ecs_register_component(&application.ecs, T, chunk_slots)
+        return ecs.destroy_entity(&application.ecs, id)
     }
 
-    component_on_create :: proc(on_create: proc(^$T, ^Entity)) -> bool
-    {
-        return ecs_set_component_on_create(&application.ecs, T, on_create)
-    }
+    // component_register :: proc($T: typeid, chunk_slots: int) -> bool
+    // {
+    //     return ecs_register_component(&application.ecs, T, chunk_slots)
+    // }
 
-    component_on_destroy :: proc(on_destroy: proc(^$T, ^Entity)) -> bool
-    {
-        return ecs_set_component_on_destroy(&application.ecs, T, on_destroy)
-    }
+    // component_on_create :: proc(on_create: proc(^$T, ^Entity)) -> bool
+    // {
+    //     return ecs_set_component_on_create(&application.ecs, T, on_create)
+    // }
 
-    component_add :: proc($T: typeid, entity: ^Entity) -> ^T
-    {
-        return ecs_add_component(&application.ecs, entity, T)
-    }
+    // component_on_destroy :: proc(on_destroy: proc(^$T, ^Entity)) -> bool
+    // {
+    //     return ecs_set_component_on_destroy(&application.ecs, T, on_destroy)
+    // }
 
-    system_register :: proc(system: proc(^$T)) -> bool
-    {
-        return ecs_register_system(&application.ecs, T, system)
-    }
+    // component_add :: proc($T: typeid, entity: ^Entity) -> ^T
+    // {
+    //     return ecs_add_component(&application.ecs, entity, T)
+    // }
+
+    // system_register :: proc(system: proc(^$T)) -> bool
+    // {
+    //     return ecs_register_system(&application.ecs, T, system)
+    // }
 }
 
 when IMPLEMENTATION
@@ -296,8 +302,7 @@ Begins an Application with provided paths.
         }
 
         //Create ecs
-        created_ecs := application_create_ecs(application)
-        if !created_ecs
+        if !ecs.init(&application.ecs, 100_000, context.allocator)
         {
             log_verbose_error("Failed to create ecs")
             return false
@@ -349,7 +354,7 @@ Ends Application.
         application_destroy_renderer(application)
 
         //Destroy ecs
-        application_destroy_ecs(application)
+        ecs.destroy(&application.ecs)
 
         //Destroy pool
         application_destroy_pool(application)
@@ -372,9 +377,6 @@ Ends Application.
 
         //Update glfw
         glfw.PollEvents()
-        
-        //Update ecs
-        ecs_update(&application.ecs, &application.pool)
 
         //Update renderer
         renderer_update(&application.graphics.renderer)
@@ -464,21 +466,6 @@ Ends Application.
         if application == nil do return false
         thread.pool_finish(&application.pool)
         thread.pool_destroy(&application.pool)
-        return true
-    }
-
-    application_create_ecs :: proc(application: ^Application) -> bool
-    {
-        if application == nil do return false
-        ecs, created := ecs_create(100, 2, 2, context.allocator)
-        application.ecs = ecs
-        return created
-    }
-
-    application_destroy_ecs :: proc(application: ^Application) -> bool
-    {
-        if application == nil do return false
-        ecs_destroy(&application.ecs)
         return true
     }
 }

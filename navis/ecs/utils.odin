@@ -12,7 +12,8 @@ name_of :: proc($T: typeid) -> string where intrinsics.type_is_named(T)
 
 can_continue :: #force_inline proc "contextless" (element: Chunk_Element) -> bool
 {
-    return !element.used
+    //return !element.used
+    return !element
 }
 
 can_break :: #force_inline proc "contextless" (updated, to_update: int) -> bool

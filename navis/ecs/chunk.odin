@@ -8,11 +8,13 @@ CHUNK_ELEMENT_FIELD_NAME :: "_element"
 
 Chunk_Content :: [MAX_CHUNK_ELEMENT_FIELDS + 1]rawptr
 
-Chunk_Element :: struct
-{
-    used: bool,
-    mutex: sync.Atomic_Mutex,
-}
+Chunk_Element :: bool
+
+// Chunk_Element :: struct
+// {
+//     used: bool,
+//     mutex: sync.Atomic_Mutex,
+// }
 
 Chunk :: struct($T: typeid)
 where
@@ -21,12 +23,14 @@ intrinsics.type_has_field(T, CHUNK_ELEMENT_FIELD_NAME) &&
 intrinsics.type_field_type(T, CHUNK_ELEMENT_FIELD_NAME) == Chunk_Element &&
 intrinsics.type_struct_field_count(T) <= MAX_CHUNK_ELEMENT_FIELDS
 {
+    __id: Table_ID,
     seek, element_fields, sub_allocations: int,
     content: Chunk_Content,
 }
 
 Raw_Chunk :: struct
 {
+    __id: Table_ID,
     seek, element_fields, sub_allocations: int,
     content: Chunk_Content,
 }
@@ -58,25 +62,27 @@ chunk_content :: proc "contextless" (chunk: ^Chunk($T)) -> ^#soa[]T
     return transmute(^#soa[]T)&chunk.content
 }
 
-chunk_sub_allocate :: proc "contextless" (chunk: ^Chunk($T)) -> int
+chunk_sub_allocate :: proc "contextless" (chunk: ^Chunk($T)) -> int #no_bounds_check
 {
-    if chunk == nil do return -1
-
     content := transmute(^#soa[]T)&chunk.content
 
     chunk_seek := chunk.seek
-    if !content[chunk_seek]._element.used
+    //if !content[chunk_seek]._element.used
+    if !content[chunk_seek]._element
     {
-        content[chunk_seek]._element.used = true
+        //content[chunk_seek]._element.used = true
+        content[chunk_seek]._element = true
         chunk.sub_allocations += 1
-        chunk.seek = clamp(chunk_seek + 1, 0, len(content) - 1)
+        chunk.seek = clamp(chunk.seek + 1, 0, len(content) - 1)
         return chunk_seek
     }
 
     for &element, index in content
     {
-        if element._element.used do continue
-        element._element.used = true
+        //if element._element.used do continue
+        if element._element do continue
+        //element._element.used = true
+        element._element = true
         chunk.sub_allocations += 1
         chunk.seek = clamp(index + 1, 0, len(content) - 1)
         return index
@@ -89,7 +95,9 @@ chunk_free :: proc "contextless" (chunk: ^Chunk($T), index: int) -> bool
 {
     if chunk == nil || index < 0 do return false
     content := transmute(^#soa[]T)&chunk.content
-    content[index]._element.used = false
+    //content[index]._element.used = false
+    content[index]._element = false
+    chunk.sub_allocations -= 1
     if index < chunk.seek do chunk.seek = index
     return true
 }
@@ -109,6 +117,11 @@ chunk_from_raw :: proc "contextless" ($T: typeid, chunk: ^Raw_Chunk) ->  ^Chunk(
 raw_chunk_capacity :: proc "contextless" (chunk: ^Raw_Chunk) -> int
 {
     return transmute(int)chunk.content[chunk.element_fields]
+}
+
+raw_chunk_is_empty :: proc "contextless" (chunk: ^Raw_Chunk) ->  bool
+{
+    return chunk != nil && chunk.sub_allocations == 0
 }
 
 raw_chunk_is_full :: proc "contextless" (chunk: ^Raw_Chunk) ->  bool

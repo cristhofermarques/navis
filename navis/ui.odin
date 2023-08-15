@@ -16,14 +16,14 @@ Window_Type :: enum
 Window_Descriptor :: struct
 {
     title: string,
-    width, height: u32,
-    type_ : Window_Type,
+    size: [2]u32,
+    type : Window_Type,
 }
 
 /* Window */
 Window :: struct
 {
-    type_: Window_Type,
+    type: Window_Type,
     handle: glfw.WindowHandle,
 }
 
@@ -47,7 +47,7 @@ when IMPLEMENTATION
 
         //Setuping glfw
         glfw.WindowHint(glfw.CLIENT_API, glfw.NO_API)
-        glfw.WindowHint(glfw.DECORATED, descriptor.type_ == .Borderless ? 0 : 1)
+        glfw.WindowHint(glfw.DECORATED, descriptor.type == .Borderless ? 0 : 1)
 
         //Cloning title
         cstr_title, clone_err := strings.clone_to_cstring(descriptor.title, context.temp_allocator)
@@ -59,7 +59,7 @@ when IMPLEMENTATION
         defer delete(cstr_title, context.temp_allocator)
 
         //Creating window
-        handle := glfw.CreateWindow(cast(i32)descriptor.width, cast(i32)descriptor.height, cstr_title, nil, nil)
+        handle := glfw.CreateWindow(cast(i32)descriptor.size.x, cast(i32)descriptor.size.y, cstr_title, nil, nil)
         if handle == nil
         {
             log_verbose_error("Failed to create window", descriptor)
@@ -68,7 +68,7 @@ when IMPLEMENTATION
 
         //Making window
         window: Window
-        window.type_ = descriptor.type_
+        window.type = descriptor.type
         window.handle = handle
 
         log_verbose_debug("Created window", window)
@@ -102,7 +102,7 @@ when IMPLEMENTATION
     }
 
     @(export=EXPORT, link_prefix=PREFIX)
-    window_get_position :: proc(window: ^Window) -> (vec2_i32, bool) #optional_ok
+    window_get_position :: proc(window: ^Window) -> ([2]i32, bool) #optional_ok
     {
         if !window_is_valid(window) do return {0, 0}, false
         x, y := glfw.GetWindowPos(window.handle)
@@ -110,7 +110,7 @@ when IMPLEMENTATION
     }
     
     @(export=EXPORT, link_prefix=PREFIX)
-    window_get_size :: proc(window: ^Window) -> (vec2_i32, bool) #optional_ok
+    window_get_size :: proc(window: ^Window) -> ([2]i32, bool) #optional_ok
     {
         if !window_is_valid(window) do return {-1, -1}, false
         width, height := glfw.GetWindowSize(window.handle)

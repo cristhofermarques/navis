@@ -2,10 +2,13 @@ package ecs
 
 MAX_ENTITY_COMPONENTS :: 64
 
+INVALID_ENTITY_ID :: Entity_ID{-1, -1}
+Entity_ID :: Collection_ID(Entity)
+
 Entity :: struct
 {
     _element: Chunk_Element,
-    components: Array_Arena(struct{name: string, component: Index}, MAX_ENTITY_COMPONENTS),
+    components: Array_Arena(struct{name: string, component: Raw_Collection_ID}, MAX_ENTITY_COMPONENTS),
 }
 
 entity_chunk_init :: proc(chunk: ^Chunk(Entity), capacity: int, allocator := context.allocator) -> bool

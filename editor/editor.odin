@@ -5,21 +5,21 @@ import "navis:ecs"
 import "core:strings"
 import "core:os"
 import "core:fmt"
+import "core:time"
 
 @(export, link_name=navis.MODULE_ON_CREATE_WINDOW)
 on_create_window :: proc(desc: ^navis.Window_Descriptor, allocator := context.allocator)
 {
     desc.title = strings.clone("Navis Editor", allocator)
-    desc.width = 600
-    desc.height = 480
-    desc.type_ = .Windowed
+    desc.size = {600, 400}
+    desc.type = .Windowed
 }
 
 @(export, link_name=navis.MODULE_ON_CREATE_RENDERER)
 on_create_renderer :: proc(desc: ^navis.Renderer_Descriptor)
 {
     desc.renderer_type = .Vulkan
-    desc.vsync = false
+    desc.vsync = true
 }
 
 @(export, link_name=navis.MODULE_ON_BEGIN)
@@ -34,11 +34,24 @@ on_begin :: proc()
     navis.application.graphics.renderer.view.rect.ratio = .Equal
     navis.renderer_refresh()
 
-    ecs_: ecs.ECS
-    if !ecs.init(&ecs_, 1_000) do return
-    defer ecs.destroy(&ecs_)
+    COUNT :: 1_000_000
+    ids := make([]ecs.Entity_ID, COUNT, context.temp_allocator)
+    
+    t0 := time.now()
+    for &id in ids
+    {
+        id = navis.create_entity()
+    }
+    fmt.println("Created", navis.application.ecs.entities.sub_allocations, "Empty Entities in", time.duration_milliseconds((time.diff(t0, time.now()))), "ms")
+    fmt.println("Total Chunks", len(navis.application.ecs.entities.chunks.content), "with Capacity of", navis.application.ecs.entities.chunk_capacity)
 
-    fmt.println("Registered", ecs.name_of(Colorize), ecs.register_archetype(&ecs_, ecs.Collection_Descriptor(Colorize){1, colorize_chunk_init, colorize_chunk_destroy, colorize_chunk_sub_allocate, colorize_chunk_free}))
+    t1 := time.now()
+    for id in ids
+    {
+        navis.destroy_entity(id)
+    }
+    fmt.println("Destroyed", navis.application.ecs.entities.sub_allocations, "Empty Entities in", time.duration_milliseconds((time.diff(t1, time.now()))), "ms")
+    fmt.println("Total Chunks", len(navis.application.ecs.entities.chunks.content), "with Capacity of", navis.application.ecs.entities.chunk_capacity)
 }
 
 @(export, link_name=navis.MODULE_ON_END)
@@ -50,6 +63,7 @@ on_end :: proc()
 Colorize :: struct
 {
     _element: ecs.Chunk_Element,
+    _entity_id: ecs.Entity_ID,
     color: [4]byte,
 }
 
