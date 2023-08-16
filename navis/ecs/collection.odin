@@ -16,8 +16,8 @@ Raw_Collection_ID :: struct
 Collection_ID :: struct($T: typeid)
 where
 intrinsics.type_is_named(T) && 
-intrinsics.type_has_field(T, CHUNK_ELEMENT_FIELD_NAME) &&
-intrinsics.type_field_type(T, CHUNK_ELEMENT_FIELD_NAME) == Chunk_Element &&
+intrinsics.type_has_field(T, CHUNK_ELEMENT_USED_FIELD_NAME) &&
+intrinsics.type_field_type(T, CHUNK_ELEMENT_USED_FIELD_NAME) == Chunk_Element_Used &&
 intrinsics.type_struct_field_count(T) <= MAX_CHUNK_ELEMENT_FIELDS
 {
     chunk_index: Table_ID,
@@ -27,8 +27,8 @@ intrinsics.type_struct_field_count(T) <= MAX_CHUNK_ELEMENT_FIELDS
 Collection_Descriptor :: struct($T: typeid)
 where
 intrinsics.type_is_named(T) && 
-intrinsics.type_has_field(T, CHUNK_ELEMENT_FIELD_NAME) &&
-intrinsics.type_field_type(T, CHUNK_ELEMENT_FIELD_NAME) == Chunk_Element &&
+intrinsics.type_has_field(T, CHUNK_ELEMENT_USED_FIELD_NAME) &&
+intrinsics.type_field_type(T, CHUNK_ELEMENT_USED_FIELD_NAME) == Chunk_Element_Used &&
 intrinsics.type_struct_field_count(T) <= MAX_CHUNK_ELEMENT_FIELDS
 {
     chunk_capacity: int,
@@ -41,8 +41,8 @@ intrinsics.type_struct_field_count(T) <= MAX_CHUNK_ELEMENT_FIELDS
 Collection :: struct($T: typeid)
 where
 intrinsics.type_is_named(T) && 
-intrinsics.type_has_field(T, CHUNK_ELEMENT_FIELD_NAME) &&
-intrinsics.type_field_type(T, CHUNK_ELEMENT_FIELD_NAME) == Chunk_Element &&
+intrinsics.type_has_field(T, CHUNK_ELEMENT_USED_FIELD_NAME) &&
+intrinsics.type_field_type(T, CHUNK_ELEMENT_USED_FIELD_NAME) == Chunk_Element_Used &&
 intrinsics.type_struct_field_count(T) <= MAX_CHUNK_ELEMENT_FIELDS
 {
     alocator: runtime.Allocator,

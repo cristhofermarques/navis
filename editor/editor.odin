@@ -34,24 +34,7 @@ on_begin :: proc()
     navis.application.graphics.renderer.view.rect.ratio = .Equal
     navis.renderer_refresh()
 
-    COUNT :: 1_000_000
-    ids := make([]ecs.Entity_ID, COUNT, context.temp_allocator)
-    
-    t0 := time.now()
-    for &id in ids
-    {
-        id = navis.create_entity()
-    }
-    fmt.println("Created", navis.application.ecs.entities.sub_allocations, "Empty Entities in", time.duration_milliseconds((time.diff(t0, time.now()))), "ms")
-    fmt.println("Total Chunks", len(navis.application.ecs.entities.chunks.content), "with Capacity of", navis.application.ecs.entities.chunk_capacity)
-
-    t1 := time.now()
-    for id in ids
-    {
-        navis.destroy_entity(id)
-    }
-    fmt.println("Destroyed", navis.application.ecs.entities.sub_allocations, "Empty Entities in", time.duration_milliseconds((time.diff(t1, time.now()))), "ms")
-    fmt.println("Total Chunks", len(navis.application.ecs.entities.chunks.content), "with Capacity of", navis.application.ecs.entities.chunk_capacity)
+    fmt.println("Registered", ecs.name_of(Colorize), "Archetype :",ecs.register_archetype(&navis.application.ecs, ecs.Archetype_Descriptor(Colorize){1_000, colorize_chunk_init, colorize_chunk_destroy, colorize_chunk_sub_allocate, colorize_chunk_free}))
 }
 
 @(export, link_name=navis.MODULE_ON_END)
@@ -62,8 +45,8 @@ on_end :: proc()
 
 Colorize :: struct
 {
-    _element: ecs.Chunk_Element,
-    _entity_id: ecs.Entity_ID,
+    __used: ecs.Chunk_Element_Used,
+    __entity_id: ecs.Entity_ID,
     color: [4]byte,
 }
 

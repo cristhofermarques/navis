@@ -3,15 +3,15 @@ package ecs
 import "core:runtime"
 import "core:intrinsics"
 
-ARCHETYPE_ENTITY_ID_FIELD_NAME :: "_entity_id"
+ARCHETYPE_ENTITY_ID_FIELD_NAME :: "__entity_id"
 
 Archetype_Descriptor :: struct($T: typeid)
 where
 intrinsics.type_is_named(T) && 
 intrinsics.type_has_field(T, ARCHETYPE_ENTITY_ID_FIELD_NAME) &&
 intrinsics.type_field_type(T, ARCHETYPE_ENTITY_ID_FIELD_NAME) == Entity_ID &&
-intrinsics.type_has_field(T, CHUNK_ELEMENT_FIELD_NAME) &&
-intrinsics.type_field_type(T, CHUNK_ELEMENT_FIELD_NAME) == Chunk_Element &&
+intrinsics.type_has_field(T, CHUNK_ELEMENT_USED_FIELD_NAME) &&
+intrinsics.type_field_type(T, CHUNK_ELEMENT_USED_FIELD_NAME) == Chunk_Element_Used &&
 intrinsics.type_struct_field_count(T) <= MAX_CHUNK_ELEMENT_FIELDS
 {
     chunk_capacity: int,

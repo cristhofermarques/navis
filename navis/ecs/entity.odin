@@ -7,7 +7,7 @@ Entity_ID :: Collection_ID(Entity)
 
 Entity :: struct
 {
-    _element: Chunk_Element,
+    __used: Chunk_Element_Used,
     components: Array_Arena(struct{name: string, component: Raw_Collection_ID}, MAX_ENTITY_COMPONENTS),
 }
 

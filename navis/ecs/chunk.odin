@@ -4,23 +4,17 @@ import "core:intrinsics"
 import "core:sync"
 
 MAX_CHUNK_ELEMENT_FIELDS :: 64
-CHUNK_ELEMENT_FIELD_NAME :: "_element"
+
+CHUNK_ELEMENT_USED_FIELD_NAME :: "__used"
+Chunk_Element_Used :: bool
 
 Chunk_Content :: [MAX_CHUNK_ELEMENT_FIELDS + 1]rawptr
-
-Chunk_Element :: bool
-
-// Chunk_Element :: struct
-// {
-//     used: bool,
-//     mutex: sync.Atomic_Mutex,
-// }
 
 Chunk :: struct($T: typeid)
 where
 intrinsics.type_is_named(T) && 
-intrinsics.type_has_field(T, CHUNK_ELEMENT_FIELD_NAME) &&
-intrinsics.type_field_type(T, CHUNK_ELEMENT_FIELD_NAME) == Chunk_Element &&
+intrinsics.type_has_field(T, CHUNK_ELEMENT_USED_FIELD_NAME) &&
+intrinsics.type_field_type(T, CHUNK_ELEMENT_USED_FIELD_NAME) == Chunk_Element_Used &&
 intrinsics.type_struct_field_count(T) <= MAX_CHUNK_ELEMENT_FIELDS
 {
     __id: Table_ID,
@@ -67,11 +61,9 @@ chunk_sub_allocate :: proc "contextless" (chunk: ^Chunk($T)) -> int #no_bounds_c
     content := transmute(^#soa[]T)&chunk.content
 
     chunk_seek := chunk.seek
-    //if !content[chunk_seek]._element.used
-    if !content[chunk_seek]._element
+    if !content[chunk_seek].__used
     {
-        //content[chunk_seek]._element.used = true
-        content[chunk_seek]._element = true
+        content[chunk_seek].__used = true
         chunk.sub_allocations += 1
         chunk.seek = clamp(chunk.seek + 1, 0, len(content) - 1)
         return chunk_seek
@@ -79,10 +71,8 @@ chunk_sub_allocate :: proc "contextless" (chunk: ^Chunk($T)) -> int #no_bounds_c
 
     for &element, index in content
     {
-        //if element._element.used do continue
-        if element._element do continue
-        //element._element.used = true
-        element._element = true
+        if element.__used do continue
+        element.__used = true
         chunk.sub_allocations += 1
         chunk.seek = clamp(index + 1, 0, len(content) - 1)
         return index
@@ -95,8 +85,8 @@ chunk_free :: proc "contextless" (chunk: ^Chunk($T), index: int) -> bool
 {
     if chunk == nil || index < 0 do return false
     content := transmute(^#soa[]T)&chunk.content
-    //content[index]._element.used = false
-    content[index]._element = false
+    if !content[index].__used do return false
+    content[index].__used = false
     chunk.sub_allocations -= 1
     if index < chunk.seek do chunk.seek = index
     return true
