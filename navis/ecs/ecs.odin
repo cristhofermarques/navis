@@ -74,30 +74,30 @@ register_archetype :: proc(ecs: ^ECS, descriptor: Archetype_Descriptor($T)) -> b
     return true
 }
 
-logic_update :: proc(ecs: ^ECS)
-{
-    for name, &archetype in ecs.archetypes do archetype_logic_update(&archetype)
+contains_system :: proc{
+    contains_collection_system,
+    contains_chunk_system,
 }
 
-contains_collection_logic_system :: proc(ecs: ^ECS, system: proc(^Collection($T))) -> bool
+contains_collection_system :: proc "contextless" (ecs: ^ECS, system: proc(^Collection($T))) -> bool
 {
     if ecs == nil || system == nil || !contains_archetype(ecs, T) do return false
     archetype := &ecs.archetypes[name_of(T)]
-    for &collection_system in archetype.collection_logic_systems
-    {
-        if collection_system == transmute(Proc_Collection_System)system do return true
-    }
-
-    return false
+    return archetype_contains_system(archetype, rawptr(system))
 }
 
-register_collection_logic_system :: proc(ecs: ^ECS, system: proc(^Collection($T))) -> bool
+contains_chunk_system :: proc "contextless" (ecs: ^ECS, system: proc(^Chunk($T))) -> bool
 {
-    if ecs == nil || system == nil || !contains_archetype(ecs, T) || contains_collection_logic_system(ecs, system) do return false
+    if ecs == nil || system == nil || !contains_archetype(ecs, T) do return false
     archetype := &ecs.archetypes[name_of(T)]
-    append_count := append_elem(&archetype.collection_logic_systems, transmute(Proc_Collection_System)system)
-    if append_count < 1 do return false
-    return true
+    return archetype_contains_system(archetype, rawptr(system))
+}
+
+register_collection_system :: proc(ecs: ^ECS, system: proc(^Collection($T)), $Priority: int, stage := System_Stage.Logic) -> bool
+{
+    if ecs == nil || system == nil || !contains_archetype(ecs, T) do return false
+    archetype := &ecs.archetypes[name_of(T)]
+    return archetype_register_system(archetype, rawptr(system), .Collection, stage, Priority)
 }
 
 create_entity :: proc(ecs: ^ECS) -> Entity_ID

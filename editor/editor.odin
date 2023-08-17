@@ -34,7 +34,9 @@ on_begin :: proc()
     navis.application.graphics.renderer.view.rect.ratio = .Equal
     navis.renderer_refresh()
 
-    fmt.println("Registered", ecs.name_of(Colorize), "Archetype :",ecs.register_archetype(&navis.application.ecs, ecs.Archetype_Descriptor(Colorize){1_000, colorize_chunk_init, colorize_chunk_destroy, colorize_chunk_sub_allocate, colorize_chunk_free}))
+    fmt.println("Registered", ecs.name_of(Colorize), "Archetype :", ecs.register_archetype(&navis.application.ecs, ecs.Archetype_Descriptor(Colorize){1_000, colorize_chunk_init, colorize_chunk_destroy, colorize_chunk_sub_allocate, colorize_chunk_free}))
+    fmt.println("Registered", ecs.name_of(Colorize), "System :", ecs.register_collection_system(&navis.application.ecs, colorize_collection_system, 0))
+    fmt.println("Archetype", ecs.name_of(Colorize), ":", navis.application.ecs.archetypes[ecs.name_of(Colorize)])
 }
 
 @(export, link_name=navis.MODULE_ON_END)
@@ -68,4 +70,8 @@ colorize_chunk_sub_allocate :: proc "contextless" (chunk: ^ecs.Chunk(Colorize)) 
 colorize_chunk_free :: proc "contextless" (chunk: ^ecs.Chunk(Colorize), index: int) -> bool
 {
     return ecs.chunk_free(chunk, index)
+}
+
+colorize_collection_system :: proc(collection: ^ecs.Collection(Colorize))
+{   
 }
