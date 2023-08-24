@@ -292,6 +292,7 @@ collection_get :: proc "contextless" (collection: ^Collection($T), id: Collectio
 Does the same as 'raw_collection_sub_allocate'. But here, we "know" the type.
     That means we can make a chunk sub allocation directly.
 */
+@(optimization_mode="speed")
 collection_sub_allocate :: proc(collection: ^Collection($T)) -> Collection_ID(T)
 {
     if collection.sub_allocations == (collection.chunk_capacity * len(collection.chunks.content))
@@ -343,6 +344,7 @@ collection_sub_allocate :: proc(collection: ^Collection($T)) -> Collection_ID(T)
     return {-1, -1}
 }
 
+@(optimization_mode="speed")
 collection_free :: proc(collection: ^Collection($T), id: Collection_ID(T)) -> bool
 {
     raw := transmute(^Raw_Collection)collection

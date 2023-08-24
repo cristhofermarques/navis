@@ -90,20 +90,25 @@ archetype_destroy :: proc(archetype: ^Archetype) -> bool
     return true
 }
 
-archetype_contains_system :: proc "contextless" (archetype: ^Archetype, system: rawptr) -> bool
+archetype_contains_system :: proc "contextless" (archetype: ^Archetype, system: rawptr) -> (bool, int, int)
 {
-    if archetype == nil || system == nil do return false
-    if system_bundle_contains(&archetype.collection_logic_systems, auto_cast system) do return true
-    if system_bundle_contains(&archetype.collection_physics_systems, auto_cast system) do return true
-    if system_bundle_contains(&archetype.chunk_logic_systems, auto_cast system) do return true
-    if system_bundle_contains(&archetype.chunk_physics_systems, auto_cast system) do return true
-    return false
+    contains := false
+    priority, index := -1, -1
+    if archetype == nil || system == nil do return contains, priority, index
+    if contains, priority, index = system_bundle_contains(&archetype.collection_logic_systems, auto_cast system); contains do return contains, priority, index
+    if contains, priority, index = system_bundle_contains(&archetype.collection_physics_systems, auto_cast system); contains do return contains, priority, index
+    if contains, priority, index = system_bundle_contains(&archetype.chunk_logic_systems, auto_cast system); contains do return contains, priority, index
+    if contains, priority, index = system_bundle_contains(&archetype.chunk_physics_systems, auto_cast system); contains do return contains, priority, index
+    return contains, priority, index
 }
 
+/*
+Only for internal use
+*/
 @(private)
 archetype_register_system :: proc(archetype: ^Archetype, system: rawptr, scope := System_Scope.Chunk, stage := System_Stage.Logic, $Priority: int) -> bool
 {
-    if archetype_contains_system(archetype, system) do return false
+    if contains, _, _ := archetype_contains_system(archetype, system); contains do return false
     switch scope
     {
         case .Chunk:
@@ -123,23 +128,87 @@ archetype_register_system :: proc(archetype: ^Archetype, system: rawptr, scope :
     return false
 }
 
-// @(private)
+/*
+Only for internal use
+*/
+@(private)
+archetype_unregister_system :: proc(archetype: ^Archetype, system: rawptr) -> bool
+{
+    if contains, priority, index := system_bundle_contains(&archetype.collection_logic_systems, auto_cast system); contains
+    {
+        unordered_remove(&archetype.collection_logic_systems.systems[priority], index)
+        return true
+    }
+
+    if contains, priority, index := system_bundle_contains(&archetype.collection_physics_systems, auto_cast system); contains
+    {
+        unordered_remove(&archetype.collection_physics_systems.systems[priority], index)
+        return true
+    }
+    
+    if contains, priority, index := system_bundle_contains(&archetype.chunk_logic_systems, auto_cast system); contains
+    {
+        unordered_remove(&archetype.chunk_logic_systems.systems[priority], index)
+        return true
+    }
+
+    if contains, priority, index := system_bundle_contains(&archetype.chunk_physics_systems, auto_cast system); contains
+    {
+        unordered_remove(&archetype.chunk_physics_systems.systems[priority], index)
+        return true
+    }
+
+    return true
+}
+
+archetype_logic_update :: proc(archetype: ^Archetype)
+{
+    for &systems in archetype.collection_logic_systems.systems
+    {
+        if systems == nil do continue
+        for system in systems do system(&archetype.collection)
+    }
+
+    updated_count, to_update_count := 0, archetype.collection.sub_allocations
+    for &chunk in archetype.collection.chunks.content
+    {
+        if chunk.sub_allocations == 0 do continue
+
+        for &systems in archetype.chunk_logic_systems.systems
+        {
+            if systems == nil do continue
+            for system in systems do system(&chunk)
+        }
+
+        updated_count += chunk.sub_allocations
+        if updated_count == to_update_count do continue
+    }
+}
+
+/*
+Alternative to default logic update
+*/
 // archetype_logic_update :: proc(archetype: ^Archetype)
 // {
-//     if archetype.collection_logic_systems != nil
+//     for &systems in archetype.collection_logic_systems.systems
 //     {
-//         for &system in archetype.collection_logic_systems do system(&archetype.collection)
+//         if systems == nil do continue
+//         for system in systems do system(&archetype.collection)
 //     }
-
-//     if archetype.chunk_logic_systems == nil do return
-//     updated_count, to_update_count := 0, archetype.collection.sub_allocations
-//     for &chunk in archetype.collection.chunks.content
+    
+//     for &systems in archetype.chunk_logic_systems.systems
 //     {
-//         if chunk.sub_allocations == 0 do continue
-
-//         for &system in archetype.chunk_logic_systems do system(&chunk)
-
-//         updated_count += chunk.sub_allocations
-//         if updated_count == to_update_count do continue
+//         if systems == nil do continue
+//         for system in systems
+//         {
+//             updated_count, to_update_count := 0, archetype.collection.sub_allocations
+//             for &chunk in archetype.collection.chunks.content
+//             {
+//                 if chunk.sub_allocations == 0 do continue
+//                 system(&chunk)
+//                 updated_count += chunk.sub_allocations
+//                 if updated_count == to_update_count do continue
+//             }
+//         }
 //     }
 // }

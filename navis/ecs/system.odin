@@ -2,6 +2,11 @@ package ecs
 
 import "core:intrinsics"
 
+MAX_SYSTEM_BUNDLE_PRIORITIES :: 3
+
+@(private)
+NAVIS_SYSTEM_PRIORITY :: MAX_SYSTEM_BUNDLE_PRIORITIES
+
 System_Scope :: enum
 {
     Chunk,
@@ -13,9 +18,6 @@ System_Stage :: enum
     Logic,
     Physics,
 }
-
-MAX_SYSTEM_BUNDLE_PRIORITIES :: 3
-NAVIS_SYSTEM_PRIORITY :: MAX_SYSTEM_BUNDLE_PRIORITIES
 
 System_Bundle :: struct($T: typeid)
 {
@@ -45,20 +47,20 @@ system_bundle_init :: proc(bundle: ^System_Bundle($T), initial_reserve := 32, al
 
 system_bundle_destroy :: proc(bundle: ^System_Bundle($T)) -> bool
 {
-    assert(bundle != nil, "nil system bundle parameter")
+    if bundle == nil do return false
     for &system in bundle.systems do delete(system)
     bundle^ = {}
     return true
 }
 
-system_bundle_contains :: proc "contextless" (bundle: ^System_Bundle($T), system: T) -> bool
+system_bundle_contains :: proc "contextless" (bundle: ^System_Bundle($T), system: T) -> (bool, int, int)
 {
-    if bundle == nil || system == nil do return false
-    for bundle_systems in bundle.systems
+    if bundle == nil || system == nil do return false, -1, -1
+    for bundle_systems, bss_index in bundle.systems
     {
-        for bundle_system in bundle_systems do if rawptr(bundle_system) == rawptr(system) do return true
+        for bundle_system, bs_index in bundle_systems do if rawptr(bundle_system) == rawptr(system) do return true, bss_index, bs_index
     }
-    return false
+    return false, -1, -1
 }
 
 system_bundle_append :: proc(bundle: ^System_Bundle($T), system: T, $Priority: int) -> bool
@@ -69,4 +71,12 @@ Priority < MAX_SYSTEM_BUNDLE_PRIORITIES
     assert(system != nil, "nil system bundle parameter")
     append_elem(&bundle.systems[Priority], system)
     return true
+}
+
+system_bundle_remove :: proc(bundle: ^System_Bundle($T), system: T) -> bool
+{
+    if bundle == nil || system == nil do return false
+    contains, priority, index := system_bundle_contains(bundle, system)
+    if !contains do return false
+    unordered_remove(&bundle.systems[priority], index)
 }

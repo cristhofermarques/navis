@@ -65,9 +65,6 @@ command_write_navis_build_descritor :: proc(builder: ^strings.Builder, descripto
     strings.write_string(builder, "=")
     strings.write_string(builder, descriptor.verbose ? "true" : "false")
     strings.write_string(builder, " ")
-
-    strings.write_string(builder, "-o:speed")
-    strings.write_string(builder, " ")
 }
 
 command_submit :: proc(builder: ^strings.Builder)
