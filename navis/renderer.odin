@@ -13,11 +13,6 @@ Renderer :: struct
     status: Renderer_Status,
     view: Renderer_View,
     scene: ^Scene,
-
-    //Test
-    shader: Shader,
-    mesh: Mesh,
-    vlh: bgfx.Vertex_Layout_Handle,
 }
 
 Renderer_Status :: struct
@@ -51,19 +46,6 @@ Renderer_View :: struct
     id: bgfx.View_ID,
     clear: Renderer_View_Clear,
     rect: Renderer_View_Rect,
-}
-
-verts := []f32{
-    -0.5, -0.5, 0,
-    0.5, -0.5, 0,
-    -0.5, 0.5, 0,
-    0.5, 0.5, 0,
-}
-
-
-idxs := []u16{
-    0, 2, 3,
-    0, 3, 1,
 }
 
 when IMPLEMENTATION
@@ -104,41 +86,8 @@ when IMPLEMENTATION
 
         //Making renderer
         renderer: Renderer
-
-        shader_data, sd_s := os.read_entire_file("editor/package/.shaders/cubes.bff", context.temp_allocator)
-        asset := shader_asset_create(shader_data)
-    
-        shader, suc := shader_create_from_asset(&asset)
-        renderer.shader = shader
-
-        vl: bgfx.Vertex_Layout
-        bgfx.vertex_layout_begin(&vl, bgfx.get_renderer_type())
-        bgfx.vertex_layout_add(&vl, .Position, 3, .F32, false, false)
-        bgfx.vertex_layout_end(&vl)
-
-        vh := bgfx.make_ref(raw_data(verts), u32(size_of(f32) * len(verts)))
-        ih := bgfx.make_ref(raw_data(idxs), u32(size_of(u16) * len(idxs)))
-
-        md: Mesh_Descriptor
-        md.layout = &vl
-        md.vertex.memory = vh
-        md.index.memory = ih
-        mesh, mesh_suc := mesh_create_from_descriptor(&md)
-        renderer.mesh = mesh
-
-        for u in shader.uniforms
-        {
-            info: bgfx.Uniform_Info
-            bgfx.get_uniform_info(u, &info)
-            fmt.println(u, cast(string)info.name[0:])
-        }
-
         return renderer, true
     }
-
-    import "core:os"
-    import "core:fmt"
-    import "core:encoding/json"
 
     renderer_create :: proc{
         renderer_create_from_descriptor,
@@ -151,10 +100,6 @@ when IMPLEMENTATION
             return
         }
 
-        shader_destroy(&renderer.shader)
-        mesh_destroy(&renderer.mesh)
-        bgfx.destroy_vertex_layout(renderer.vlh)
-
         bgfx.shutdown()
     }
 
@@ -163,16 +108,6 @@ when IMPLEMENTATION
         if renderer == nil do return
 
         bgfx.touch(renderer.view.id)
-
-        u_color := vec4_f32{0.4, 0.5, 0.6, 1}
-        u_info: bgfx.Uniform_Info
-        bgfx.get_uniform_info(renderer.shader.uniforms[0], & u_info)
-        bgfx.set_uniform(renderer.shader.uniforms[0], &u_color, u_info.num)
-        
-        bgfx.set_state(u64(bgfx.StateFlags.WriteRgb | bgfx.StateFlags.WriteA), 0)
-        bgfx.set_vertex_buffer(0, renderer.mesh.vertex_buffer, 0, cast(u32)len(verts))
-        bgfx.set_index_buffer(renderer.mesh.index_buffer, 0, 6)
-        bgfx.submit(renderer.view.id, renderer.shader.program, 0.0, 0)
    
         bgfx.frame(false)
 

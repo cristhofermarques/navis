@@ -1,5 +1,7 @@
 package ecs
 
+import "../mem"
+
 MAX_ENTITY_ARCHETYPES :: 64
 
 INVALID_ENTITY_ID :: Entity_ID{-1, -1}
@@ -14,7 +16,7 @@ Entity_Raw_Archetype :: struct
 Entity :: struct
 {
     __used: Chunk_Element_Used,
-    archetypes: Array_Arena(Entity_Raw_Archetype, MAX_ENTITY_ARCHETYPES),
+    archetypes: mem.Sized_Chunk(Entity_Raw_Archetype, MAX_ENTITY_ARCHETYPES),
 }
 
 entity_chunk_init :: proc(chunk: ^Chunk(Entity), capacity: int, allocator := context.allocator) -> bool

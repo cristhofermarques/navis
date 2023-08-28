@@ -11,6 +11,7 @@ FLAG_NAVIS_BUILD_MODE_EMBEDDED :: "navis-build-mode:embedded"
 FLAG_BUILD_MODULE :: "module"
 FLAG_BUILD_LAUNCHER :: "launcher"
 FLAG_BUILD_SHADER :: "shader"
+FLAG_BUILD_PACKAGE :: "package"
 FLAG_CLEAR_SHADER_MODULES :: "clear-shader-modules"
 
 main :: proc()
@@ -30,6 +31,26 @@ main :: proc()
         if cli_has_flag(FLAG_COPY_BGFX_RESOURCES) > -1
         {
             bgfx_copy_binaries_for_windows()
+        }
+    }
+
+    //Shader compilation
+    {
+        indices := cli_get_pair_flag_index_list(FLAG_BUILD_SHADER, allocator = context.temp_allocator)
+        for i in indices
+        {
+            f, k, v := cli_unpack_pair_flag_argument(i)
+            bgfx_build_shader(k, v, shader_compile_options, clear_shader_modules)
+        }
+    }
+
+    //Package packing
+    {
+        indices := cli_get_pair_flag_index_list(FLAG_BUILD_PACKAGE, allocator = context.temp_allocator)
+        for i in indices
+        {
+            f, k, v := cli_unpack_pair_flag_argument(i)
+            package_pack(v, k)
         }
     }
 
@@ -58,16 +79,6 @@ main :: proc()
         {
             f, k, v := cli_unpack_pair_flag_argument(i)
             build_launcher(k, v, module_build_config)
-        }
-    }
-
-    //Shader compilation
-    {
-        indices := cli_get_pair_flag_index_list(FLAG_BUILD_SHADER, allocator = context.temp_allocator)
-        for i in indices
-        {
-            f, k, v := cli_unpack_pair_flag_argument(i)
-            bgfx_build_shader(k, v, shader_compile_options, clear_shader_modules)
         }
     }
 }

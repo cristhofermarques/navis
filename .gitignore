@@ -8,7 +8,7 @@
 #Odin Language Server Json
 ols.json
 
-#Windows Binaries 
+#Windows Binaries
 *.exe
 *.lib
 *.dll

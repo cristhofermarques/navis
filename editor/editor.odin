@@ -2,11 +2,12 @@ package sandbox
 
 import "navis:."
 import "navis:ecs"
+import "navis:pkg"
 import "navis:mem"
-import "core:strings"
-import "core:os"
 import "core:fmt"
-import "core:time"
+import "core:strings"
+
+package_data := #load("editor.pkg", []byte)
 
 @(export, link_name=navis.MODULE_ON_CREATE_WINDOW)
 on_create_window :: proc(desc: ^navis.Window_Descriptor, allocator := context.allocator)
@@ -34,39 +35,6 @@ on_begin :: proc()
     navis.application.graphics.renderer.view.clear.depth = 1
     navis.application.graphics.renderer.view.rect.ratio = .Equal
     navis.renderer_refresh()
-
-    p_ecs := &navis.application.ecs
-
-    fmt.println("Registered", ecs.name_of(Colorize), "Archetype :", ecs.register_archetype(&navis.application.ecs, ecs.Archetype_Descriptor(Colorize){100_000, colorize_chunk_init, colorize_chunk_destroy, colorize_chunk_sub_allocate, colorize_chunk_free}))
-    fmt.println("Registered", ecs.name_of(Colorize), "System :", ecs.register_collection_system(&navis.application.ecs, colorize_collection_system, 0))
-    fmt.println("Registered", ecs.name_of(Colorize), "System :", ecs.register_chunk_system(&navis.application.ecs, colorize_chunk_system, 0))
-
-    t1 := time.now()
-    for i in 1..=1_000_000
-    {
-        ecs.create_entity(p_ecs)
-        //ecs.add_archetype(p_ecs, Colorize, entt)
-    }
-    fmt.println(time.duration_milliseconds(time.diff(t1, time.now())), "ms")
-
-    for i in 1..=10
-    {
-        t0 := time.now()
-        for k, &a in p_ecs.archetypes do ecs.archetype_logic_update(&a)
-        fmt.println(time.duration_milliseconds(time.diff(t0, time.now())), "ms")
-    }
-
-    fmt.println(p_ecs.entities.sub_allocations)
-
-    //Testing mem package
-    cc := mem.raw_soa_collection_make(mem.SOA_Collection_Descriptor(My_Type, 2){10, my_type_chunk_init, my_type_chunk_destroy, my_type_chunk_sub_allocate, my_type_chunk_free})
-    if mem.raw_soa_collection_init(&cc)
-    {
-        defer mem.raw_soa_collection_destroy(&cc)
-        id := mem.raw_soa_collection_sub_allocate(&cc)
-        mem.raw_soa_collection_free(&cc, id)
-        fmt.println(cc)
-    }
 }
 
 @(export, link_name=navis.MODULE_ON_END)
