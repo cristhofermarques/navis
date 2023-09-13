@@ -33,3 +33,5 @@ ols.json
 *.a
 *.so
 !bgfx_*.a
+
+*.pkg

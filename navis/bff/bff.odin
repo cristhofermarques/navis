@@ -5,6 +5,7 @@ import "core:reflect"
 import "core:strings"
 import "core:bytes"
 import "core:mem"
+import "core:io"
 
 Field :: struct
 {
@@ -14,28 +15,35 @@ Field :: struct
 }
 
 /*
+Marshal to stream from structure.
 */
-marshal :: proc(buffer: ^bytes.Buffer, x: $T)
+marshal :: proc(stream: io.Stream, x: ^$T)
 {
-    marshal_recursive(buffer, T, x, "")
+    marshal_recursive(stream, T, x, "")
 }
 
 @(private)
-marshal_recursive :: proc(b: ^bytes.Buffer, id: typeid, parent: any, parent_name: string)
+marshal_recursive :: proc(stream: io.Stream, id: typeid, parent: rawptr, parent_name: string)
 {
     fields := reflect.struct_fields_zipped(id)
+
+    raw_any: runtime.Raw_Any
+    raw_any.data = parent
+    raw_any.id = id
+
     for field in fields
     {
         separator := len(parent_name) == 0 ? "" : "."
         field_path := strings.concatenate({parent_name, separator, field.name}, context.temp_allocator)
         field_path_len := len(field_path)
-        field_value := reflect.struct_field_value_by_name(parent, field.name)
+        field_value := reflect.struct_field_value_by_name(transmute(any)raw_any, field.name)
         
         if reflect.is_struct(field.type)
         {
-            marshal_recursive(b, field.type.id, field_value, field_path)
+            raw_fv := transmute(runtime.Raw_Any)field_value
+            marshal_recursive(stream, field.type.id, raw_fv.data, field_path)
         }
-        else if reflect.is_array(field.type) || reflect.is_slice(field.type)
+        else if reflect.is_array(field.type) || reflect.is_slice(field.type) || reflect.is_simd_vector(field.type)
         {
             if reflect.is_nil(field_value) do continue
             field_data, _ := reflect.as_raw_data(field_value)
@@ -45,29 +53,32 @@ marshal_recursive :: proc(b: ^bytes.Buffer, id: typeid, parent: any, parent_name
             data_size := length * sizeof_el
 
             //Field name
-            bytes.buffer_write_ptr(b, &field_path_len, size_of(int))
-            bytes.buffer_write_ptr(b, raw_data(field_path), field_path_len)
+            io.write_ptr(stream, &field_path_len, size_of(int))
+            io.write_ptr(stream, raw_data(field_path), field_path_len)
 
             //Field data
-            bytes.buffer_write_ptr(b, &data_size, size_of(int))
-            bytes.buffer_write_ptr(b, field_data, data_size)
+            io.write_ptr(stream, &data_size, size_of(int))
+            io.write_ptr(stream, field_data, data_size)
         }
         else if reflect.is_integer(field.type) || reflect.is_float(field.type) || reflect.is_boolean(field.type)
         {
             data := reflect.as_bytes(field_value)
 
             //Field name
-            bytes.buffer_write_ptr(b, &field_path_len, size_of(int))
-            bytes.buffer_write_ptr(b, raw_data(field_path), field_path_len)
+            io.write_ptr(stream, &field_path_len, size_of(int))
+            io.write_ptr(stream, raw_data(field_path), field_path_len)
 
             //Field data
-            bytes.buffer_write_ptr(b, &field.type.size, size_of(int))
-            bytes.buffer_write_ptr(b, raw_data(data), field.type.size)
+            io.write_ptr(stream, &field.type.size, size_of(int))
+            io.write_ptr(stream, raw_data(data), field.type.size)
         }
     }
 }
 
-get_fields :: proc(data: []byte, allocator := context.allocator) -> []Field
+/*
+List all fields from data.
+*/
+list_fields :: proc(data: []byte, allocator := context.allocator) -> []Field
 {
     dyn_fields, dyn_fields_alloc_err := make([dynamic]Field, 0, 10, context.temp_allocator)
     if dyn_fields_alloc_err != .None do return nil
@@ -104,9 +115,12 @@ get_fields :: proc(data: []byte, allocator := context.allocator) -> []Field
     return fields
 }
 
+/*
+Unmarshal to structure from data.
+*/
 unmarshal :: proc(data: []byte, x: ^$T)
 {
-    fields := get_fields(data, context.temp_allocator)
+    fields := list_fields(data, context.temp_allocator)
     unmarshal_recursive(fields, T, x^, "")
 }
 

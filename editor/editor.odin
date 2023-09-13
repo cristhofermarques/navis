@@ -4,10 +4,14 @@ import "navis:."
 import "navis:ecs"
 import "navis:pkg"
 import "navis:mem"
+import "navis:bff"
+import "core:os"
 import "core:fmt"
 import "core:strings"
+import "core:thread"
+import "core:bytes"
 
-package_data := #load("editor.pkg", []byte)
+EDITOR_PACKAGE :: "editor"
 
 @(export, link_name=navis.MODULE_ON_CREATE_WINDOW)
 on_create_window :: proc(desc: ^navis.Window_Descriptor, allocator := context.allocator)
@@ -22,6 +26,8 @@ on_create_renderer :: proc(desc: ^navis.Renderer_Descriptor)
 {
     desc.renderer_type = .Vulkan
     desc.vsync = true
+    desc.shaders_chunk_capacity = 10
+    desc.shaders_map_initial_capacity = 10
 }
 
 @(export, link_name=navis.MODULE_ON_BEGIN)
@@ -35,6 +41,14 @@ on_begin :: proc()
     navis.application.graphics.renderer.view.clear.depth = 1
     navis.application.graphics.renderer.view.rect.ratio = .Equal
     navis.renderer_refresh()
+
+    navis.streamer_require_asset("shader", on_asset_load)
+}
+
+on_asset_load :: proc(asset: ^pkg.Asset, user_data: rawptr)
+{
+    fmt.println("laoded asset shader")
+    navis.streamer_dispose_asset("shader", 2)
 }
 
 @(export, link_name=navis.MODULE_ON_END)
@@ -48,6 +62,7 @@ Colorize :: struct
     __used: ecs.Chunk_Element_Used,
     __entity_id: ecs.Entity_ID,
     color: #simd[4]f32,
+    abc: int,
 }
 
 colorize_chunk_init :: proc(chunk: ^ecs.Chunk(Colorize), capacity: int, allocator := context.allocator) -> bool

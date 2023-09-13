@@ -2,7 +2,9 @@ package navis
 
 when BINDINGS
 {
+    import "pkg"
     import "core:runtime"
+    import "core:thread"
 
     when ODIN_OS == .Windows do foreign import navis "navis.lib"
     when ODIN_OS == .Linux   do foreign import navis "navis.a"
@@ -16,17 +18,14 @@ when BINDINGS
 
         /* Navis */
         @(link_prefix=PREFIX)
-        run_from_paths :: proc(paths: ..string, allocator := context.allocator) ---
-        
-        @(link_prefix=PREFIX)
-        exit_uncached :: proc(application: ^Application) ---
-        
-        // @(link_prefix=PREFIX)
-        // ecs_register_component_from_module :: proc(ecs: ^ECS, module: ^Module, id: typeid) ---
+        run :: proc(module_paths, package_paths: []string, allocator := context.allocator) ---
 
         /* Renderer */
         @(link_prefix=PREFIX)
         renderer_refresh_uncached :: proc "contextless" (renderer: ^Renderer) ---
+
+        @(link_prefix=PREFIX)
+        renderer_require_shader :: proc(renderer: ^Renderer, streamer: ^pkg.Streamer, pool: ^thread.Pool, package_name, asset_name: string, idle_frames := 0) -> bool ---
         
         /* Shader */
         @(link_prefix=PREFIX)
@@ -55,19 +54,10 @@ when BINDINGS
         window_get_key :: proc(window: ^Window, key: Keyboard_Keys) -> Keyboard_Key_State ---
         
         /* Streamer */
-        @(link_prefix=PREFIX)
-        package_create_from_path :: proc(path: string, allocator := context.allocator) -> (Package, bool) ---
+        @(link_prefix=PREFIX)       
+        streamer_require_asset_uncached :: proc(application: ^Application, asset_name: string, on_loaded: pkg.Proc_On_Asset_Loaded = nil, user_data : rawptr = nil, idle_frames := 0) -> bool ---
 
         @(link_prefix=PREFIX)
-        package_read_asset :: proc(pkg: ^Package, path: string, allocator := context.allocator) -> []byte ---
-
-        @(link_prefix=PREFIX)
-        package_delete :: proc(pkg: ^Package, allocator := context.allocator) ---
-        
-        @(link_prefix=PREFIX)
-        streamer_create :: proc(paths: []string, references: []Package_Reference = nil, allocator := context.allocator) -> (Streamer, bool) #optional_ok ---
-        
-        @(link_prefix=PREFIX)
-        streamer_destroy :: proc(streamer: ^Streamer, allocator := context.allocator) ---
+        streamer_dispose_asset_uncached :: proc(application: ^Application, asset_name: string, idle_frames := 0) -> bool ---
     }
 }

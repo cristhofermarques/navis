@@ -513,7 +513,7 @@ bgfx_pack_shader_asset :: proc(name, path: string, options: Shader_Compile_Optio
     }
 
     shader_path := bgfx_compose_shader_path(name, context.temp_allocator)
-    bgfx_serialize_shader_asset_to_file(shader_path, asset)
+    bgfx_serialize_shader_asset_to_file(shader_path, &asset)
 }
 
 bgfx_clear_shader_asset :: proc(path: string)
@@ -540,13 +540,12 @@ bgfx_build_shader :: proc(name, path: string, options: Shader_Compile_Options = 
     if post_clear do bgfx_clear_shader_asset(path)
 }
 
-bgfx_serialize_shader_asset_to_file :: proc(path: string, asset: navis.Shader_Asset)
+bgfx_serialize_shader_asset_to_file :: proc(path: string, asset: ^navis.Shader_Asset)
 {
-    b: bytes.Buffer
-    bytes.buffer_init_allocator(&b, 0, 1024 * 256, context.temp_allocator)
-    defer bytes.buffer_destroy(&b)
-    bff.marshal(&b, asset)
-    write_file(path, bytes.buffer_to_bytes(&b))
+    h, e := os.open(path, os.O_CREATE | os.O_WRONLY)
+    if e != os.ERROR_NONE do return
+    defer os.close(h)
+    bff.marshal(os.stream_from_handle(h), asset)
 }
 
 read_file :: proc(path: string, allocator := context.allocator) -> []byte

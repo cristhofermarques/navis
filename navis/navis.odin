@@ -1,6 +1,7 @@
 package navis
 
 import "ecs"
+import "pkg"
 import "core:intrinsics"
 import "core:runtime"
 import "core:thread"
@@ -38,33 +39,147 @@ PREFIX :: "navis_"
 /* Navis */
 
 
-/*
-TODO: documentation
-*/
-run :: proc{
-    run_from_paths,
-}
-
 when IMPLEMENTATION
 {
     /*
     TODO(cris): documentation
     */
     @(export=EXPORT, link_prefix=PREFIX)
-    run_from_paths :: proc(paths: ..string, allocator := context.allocator)
+    run :: proc(module_paths, package_paths: []string, allocator := context.allocator)
     {
         application: Application
-        if !application_begin_from_paths(&application, paths, allocator) do return
-        defer application_end(&application)
-        application_loop(&application)
-    }
-    
-    
-    @(export=EXPORT, link_prefix=PREFIX)
-    exit_uncached :: proc(application: ^Application)//NOTE(cris): this proc can be inline.
-    {
-        if application == nil do return
-        application.running = false
+
+        if module_paths == nil
+        {
+            log_verbose_error("invalid 'module_paths' parameter", module_paths)
+            return
+        }
+
+        if package_paths == nil
+        {
+            log_verbose_error("invalid 'package_paths' parameter", package_paths)
+            return
+        }
+
+        //Loading modules
+        modules, modules_load_success := module_load_paths(paths = module_paths, allocator = allocator)
+        if !modules_load_success
+        {
+            log_verbose_error("Failed to load modules")
+            return
+        }
+
+        module_on_set_module_cache(modules)
+
+        //Setup application
+        application.running = true
+        application.main_module = &modules[0]
+        application.modules = modules
+        module_on_set_application_cache(modules, &application)
+
+        //Initialize glfw
+        if glfw.Init() != 1
+        {
+            log_verbose_error("Failed to initialize glfw")
+            module_unload_multiple(application.modules)
+            delete(application.modules, allocator)
+            return
+        }
+        
+        //Create window
+        created_window := application_create_window(&application)
+        if !created_window
+        {
+            log_verbose_error("Failed to create window")
+            glfw.Terminate()
+            module_unload_multiple(application.modules)
+            delete(application.modules, allocator)
+            return
+        }
+
+        //Create renderer
+        created_renderer := application_create_renderer(&application)
+        if !created_renderer
+        {
+            log_verbose_error("Failed to create renderer")
+            window_destroy(&application.ui.window)
+            glfw.Terminate()
+            module_unload_multiple(application.modules)
+            delete(application.modules, allocator)
+            return
+        }
+        
+        //Create streamer
+        created_streamer := pkg.init(&application.streamer, package_paths, 100, context.allocator, allocator)
+        if !created_streamer
+        {
+            log_verbose_error("Failed to create streamer")
+            renderer_destroy(&application.graphics.renderer)
+            window_destroy(&application.ui.window)
+            glfw.Terminate()
+            module_unload_multiple(application.modules)
+            delete(application.modules, allocator)
+            return
+        }
+
+        //Create ecs
+        if !ecs.init(&application.ecs, 100_000, context.allocator)
+        {
+            log_verbose_error("Failed to create ecs")
+            pkg.destroy(&application.streamer)
+            renderer_destroy(&application.graphics.renderer)
+            window_destroy(&application.ui.window)
+            glfw.Terminate()
+            module_unload_multiple(application.modules)
+            delete(application.modules, allocator)
+            return
+        }
+
+        //Create pool
+        created_pool := application_create_pool(&application)
+        if !created_pool
+        {
+            log_verbose_error("Failed to create pool")
+            ecs.destroy(&application.ecs)
+            pkg.destroy(&application.streamer)
+            renderer_destroy(&application.graphics.renderer)
+            window_destroy(&application.ui.window)
+            glfw.Terminate()
+            module_unload_multiple(application.modules)
+            delete(application.modules, allocator)
+            return
+        }
+        
+        //On init
+        thread.pool_start(&application.pool)
+        module_on_begin(application.modules)
+
+        for application.running
+        {
+            //Update window
+            if !window_update(&application.ui.window) do application.running = false
+
+            //Update glfw
+            glfw.PollEvents()
+
+            //Update ecs
+            
+            //Update streamer
+            pkg.frame(&application.streamer, &application.pool)
+            
+            //Update renderer
+            renderer_update(&application.graphics.renderer)
+        }
+
+        module_unload_multiple(application.modules)
+        thread.pool_finish(&application.pool)// We need to finish all tasks before start destroying things
+        thread.pool_destroy(&application.pool)
+        ecs.destroy(&application.ecs)
+        pkg.destroy(&application.streamer)
+        renderer_destroy(&application.graphics.renderer)
+        window_destroy(&application.ui.window)
+        glfw.Terminate()
+        delete(application.modules, allocator)
     }
 }
 
@@ -109,6 +224,7 @@ Application :: struct
     ui: Application_UI,
     graphics: Application_Graphics,
     ecs: ecs.ECS,
+    streamer: pkg.Streamer,
     pool: thread.Pool,
 }
 
@@ -183,14 +299,9 @@ when MODULE
         application = p_application
     }
 
-    exit_cached :: proc()
+    exit :: #force_inline proc "contextless" ()
     {
-        exit_uncached(application)
-    }
-
-    exit :: proc{
-        exit_uncached,
-        exit_cached,
+        application.running = false
     }
 
     renderer_refresh_cached :: proc "contextless" ()
@@ -237,150 +348,17 @@ when MODULE
     // {
     //     return ecs_register_system(&application.ecs, T, system)
     // }
+
+    require_shader :: proc(package_name, asset_name: string) -> bool
+    {
+        return renderer_require_shader(&application.graphics.renderer, &application.streamer, &application.pool, package_name, asset_name)
+    }
 }
 
 when IMPLEMENTATION
 {
     import "bgfx"
     import "vendor:glfw"
-
-/*
-Begins an Application with provided paths.
-* First path (index 0) is treated as the main module.
-*/
-    application_begin_from_paths :: proc(application: ^Application, paths: []string, allocator := context.allocator) -> bool
-    {
-        if application == nil
-        {
-            log_verbose_error("Invalid application parameter", application)
-            return false
-        }
-
-        if slice_is_nil_or_empty(paths)
-        {
-            log_verbose_error("Invalid paths parameter", paths)
-            return false
-        }
-
-        //Loading modules
-        modules, modules_load_success := module_load_paths(paths = paths, allocator = allocator)
-        if !modules_load_success
-        {
-            log_verbose_error("Failed to load modules")
-            return false
-        }
-
-        module_on_set_module_cache(modules)
-
-        //Setup application
-        application.running = true
-        application.main_module = &modules[0]
-        application.modules = modules
-        module_on_set_application_cache(modules, application)
-
-        //Initialize glfw
-        if glfw.Init() != 1
-        {
-            log_verbose_error("Failed to initialize glfw")
-            return false
-        }
-        
-        //Create window
-        created_window := application_create_window(application)
-        if !created_window
-        {
-            log_verbose_error("Failed to create window")
-            return false
-        }
-
-        //Create renderer
-        created_renderer := application_create_renderer(application)
-        if !created_renderer
-        {
-            log_verbose_error("Failed to create renderer")
-            return false
-        }
-
-        //Create ecs
-        if !ecs.init(&application.ecs, 100_000, context.allocator)
-        {
-            log_verbose_error("Failed to create ecs")
-            return false
-        }
-
-        //Create pool
-        created_pool := application_create_pool(application)
-        if !created_pool
-        {
-            log_verbose_error("Failed to create pool")
-            return false
-        }
-        
-        //On init
-        module_on_begin(application.modules)
-
-        //Success
-        return true
-    }
-
-/*
-Performs Application loop.
-*/
-    application_loop :: proc(application: ^Application)
-    {
-        if application == nil do return
-
-        for application.running
-        {
-            application_update(application)
-        }
-    }
-
-/*
-Ends Application.
-*/
-    application_end :: proc(application: ^Application, location := #caller_location) -> bool
-    {
-        if application == nil do return false
-        if application.running do return false
-
-        //On end
-        module_on_end(application.modules)
-
-        //Destroy window
-        application_destroy_window(application)
-        
-        //Finalize renderer
-        application_destroy_renderer(application)
-
-        //Destroy ecs
-        ecs.destroy(&application.ecs)
-
-        //Destroy pool
-        application_destroy_pool(application)
-
-        //Unload modules
-        if application.modules != nil do module_unload(application.modules)
-        application.modules = nil
-        application.main_module = nil
-
-        //Finalize glfw
-        glfw.Terminate()
-
-        return true
-    }
-
-    application_update :: proc(application: ^Application)
-    {
-        //Update window
-        if !window_update(&application.ui.window) do exit_uncached(application)
-
-        //Update glfw
-        glfw.PollEvents()
-
-        //Update renderer
-        renderer_update(&application.graphics.renderer)
-    }
 
     /* Application Window */
 
@@ -431,15 +409,12 @@ Ends Application.
         module_on_create_renderer(application.main_module, &descriptor)
         
         //Creating renderer
-        renderer, created := renderer_create(&descriptor, &application.ui.window)
-        if !created
+        if !renderer_init(&application.graphics.renderer, &application.ui.window, &descriptor)
         {
             log_verbose_error("Failed to create renderer", descriptor)
             return false
         }
-        
-        //Success
-        application.graphics.renderer = renderer
+
         return true
     }
 
@@ -457,7 +432,6 @@ Ends Application.
     {
         if application == nil do return false
         thread.pool_init(&application.pool, context.allocator, os.processor_core_count())
-        thread.pool_start(&application.pool)
         return true
     }
 

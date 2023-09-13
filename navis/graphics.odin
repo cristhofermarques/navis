@@ -49,6 +49,7 @@ Shader_Descriptor :: struct
 
 Shader :: struct
 {
+    references, idle_frames: int,
     uniforms: []bgfx.Uniform_Handle,
     program: bgfx.Program_Handle,
 }
