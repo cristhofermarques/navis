@@ -10,44 +10,6 @@ import "core:os"
 import "core:encoding/json"
 import "core:time"
 
-BGFX_Descriptor :: struct
-{
-    type: bgfx.Renderer_Type,
-    vendor_id: bgfx.PCI_ID,
-    device_id: u16,
-    capabilities: bgfx.Caps_Flags,
-    debug: b8,
-    profile: b8,
-    platform_data: bgfx.Platform_Data,
-    resolution: bgfx.Resolution,
-    limits: bgfx.Init_Limits,
-    callback,
-    allocator: rawptr,
-}
-
-// bgfx_init :: proc "contextless" (descriptor: ^BGFX_Descriptor) -> bool
-// {
-//     init: bgfx.Init
-//     bgfx.init_ctor(&init)
-//     init.type = descriptor.type
-//     init.vendor_id = descriptor.vendor_id
-//     init.device_id = descriptor.device_id
-//     init.capabilities = descriptor.capabilities
-//     init.debug = descriptor.debug
-//     init.profile = descriptor.profile
-//     init.platform_data = descriptor.platform_data
-//     init.resolution = descriptor.resolution
-//     init.limits = descriptor.limits
-//     init.callback = descriptor.callback
-//     init.allocator = descriptor.allocator
-//     return cast(bool)bgfx.init(&init)
-// }
-
-BGFX_Program_Asset :: struct
-{
-    vs, fs: string,
-}
-
 On_Load_BGFX_Asset :: proc(^BGFX_Asset, rawptr)
 
 BGFX_Asset_Load_Data :: struct
@@ -71,8 +33,39 @@ BGFX_Asset_Type :: enum
 BGFX_Asset :: struct
 {
     info: Asset_Stream_Info,
+    asset: union
+    {
+        BGFX_Vertex_Buffer,
+        BGFX_Index_Buffer,
+        BGFX_Shader,
+        BGFX_Program,
+    },
+
+    //DEPRECTED
     type: BGFX_Asset_Type,
     handle: bgfx.Handle,
+}
+
+BGFX_Vertex_Buffer :: struct
+{
+    handle: bgfx.Vertex_Buffer_Handle,
+    vertex_count: u32,
+}
+
+BGFX_Index_Buffer :: struct
+{
+    handle: bgfx.Index_Buffer_Handle,
+    index_count: u32,
+}
+
+BGFX_Shader :: struct
+{
+    handle: bgfx.Shader_Handle,
+}
+
+BGFX_Program :: struct
+{
+    handle: bgfx.Program_Handle,
 }
 
 BGFX_Streamer :: struct
@@ -107,6 +100,14 @@ bgfx_streamer_destroy :: proc(streamer: ^BGFX_Streamer) -> bool
 {
     for asset_name, asset in streamer.assets_map
     {
+        if asset.type != .Program do continue
+        bgfx_asset_destroy(asset)
+        delete_key(&streamer.assets_map, asset_name)
+        log_verbose_debug("Destroyed bgfx asset:", asset_name, "type:", asset.type, "1st")
+    }
+
+    for asset_name, asset in streamer.assets_map
+    {
         bgfx_asset_destroy(asset)
         log_verbose_debug("Destroyed bgfx asset:", asset_name, "type:", asset.type)
     }
@@ -133,6 +134,7 @@ bgfx_streamer_require_asset :: proc(streamer: ^Streamer, bgfx_streamer: ^BGFX_St
         log_verbose_error("Failed to sub allocate from bgfx assets collection")
         return false
     }
+    //DEPRECTED
     asset^ = {}
     asset.type = asset_type
     asset.handle = bgfx.INVALID_HANDLE
@@ -252,7 +254,7 @@ bgfx_load_program_on_vs_shader_loaded :: proc(asset: ^BGFX_Asset, data: ^BGFX_Lo
     intrinsics.atomic_store(&data.program_asset.info.is_loaded, data.program_asset.handle != bgfx.INVALID_HANDLE)
     allocator := data.streamer.stream_allocator
     free(data, allocator)
-    fmt.println("From VS")
+    log_verbose_debug("Loaded some bgfx program from vertex shader callback")
 }
 
 bgfx_load_program_on_fs_shader_loaded :: proc(asset: ^BGFX_Asset, data: ^BGFX_Load_Program_Data)
@@ -264,9 +266,8 @@ bgfx_load_program_on_fs_shader_loaded :: proc(asset: ^BGFX_Asset, data: ^BGFX_Lo
     intrinsics.atomic_store(&data.program_asset.info.is_loaded, data.program_asset.handle != bgfx.INVALID_HANDLE)
     allocator := data.streamer.stream_allocator
     free(data, allocator)
-    fmt.println("From FS")
+    log_verbose_debug("Loaded some bgfx program from fragment shader callback")
 }
-import "core:fmt"
 
 bgfx_streamer_frame :: proc(streamer: ^BGFX_Streamer)
 {
