@@ -6,13 +6,15 @@ import "bgfx"
 Vertex_Buffer_Asset :: struct
 {
     layout: bgfx.Vertex_Layout,
-    vertices: []byte
+    vertex_count: u32,
+    vertices: []byte,
 }
 
 Index_Buffer_Asset :: struct
 {
     is_index32: bool,
-    data: []byte
+    index_count: u32,
+    data: []byte,
 }
 
 Shader_Asset :: struct
@@ -49,4 +51,9 @@ shader_asset_from_bff :: proc(data: []byte) -> Shader_Asset
     asset: Shader_Asset
     bff.unmarshal(data, &asset)
     return asset
+}
+
+BGFX_Program_Asset :: struct
+{
+    vs, fs: string,
 }
