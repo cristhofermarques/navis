@@ -559,7 +559,7 @@ package_streamer_init :: proc(streamer: ^Package_Streamer, path: string, stream_
 
     streamer.package_name = package_name
     streamer.stream_allocator = stream_allocator
-    log_debug("Failed to initialize streamer for package:", package_name)
+    log_debug("Initialized streamer for package:", package_name)
     return true
 }
 
