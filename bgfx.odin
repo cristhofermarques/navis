@@ -39,7 +39,7 @@ BGFX_Asset :: struct
     {
         vertex_count: struct{vertex_count: u32},
         index_count: struct{index_count: u32},
-        program: struct{vb_asset, ib_asset: ^BGFX_Asset}
+        program: struct{vs_asset, fs_asset: ^BGFX_Asset}
     }
 }
 
@@ -174,9 +174,10 @@ on_bgfx_asset_loaded :: proc(asset: ^Asset, data: ^BGFX_Asset_Load_Data)
             bff.unmarshal(asset.data, &vb_asset)
             vb_mem := bgfx.make_ref(raw_data(vb_asset.vertices), cast(u32)len(vb_asset.vertices))
             data.asset.handle = bgfx.create_vertex_buffer(vb_mem, &vb_asset.layout, {})
-            intrinsics.atomic_store(&data.asset.info.is_loading, false)
             intrinsics.atomic_store(&data.asset.info.is_loaded, true)
+            intrinsics.atomic_store(&data.asset.info.is_loading, false)
             if data.asset.handle != bgfx.INVALID_HANDLE && data.on_loaded != nil do data.on_loaded(data.asset, data.user_data)
+            //TODO: treat when cant create the asset
             return
 
         case .Index_Buffer:
@@ -184,75 +185,69 @@ on_bgfx_asset_loaded :: proc(asset: ^Asset, data: ^BGFX_Asset_Load_Data)
             bff.unmarshal(asset.data, &ib_asset)
             ib_mem := bgfx.make_ref(raw_data(ib_asset.data), cast(u32)len(ib_asset.data))
             data.asset.handle = bgfx.create_index_buffer(ib_mem, ib_asset.is_index32 ? {.Index_32} : {})
-            intrinsics.atomic_store(&data.asset.info.is_loading, false)
             intrinsics.atomic_store(&data.asset.info.is_loaded, true)
+            intrinsics.atomic_store(&data.asset.info.is_loading, false)
             if data.asset.handle != bgfx.INVALID_HANDLE && data.on_loaded != nil do data.on_loaded(data.asset, data.user_data)
+            //TODO: treat when cant create the asset
             return
 
         case .Shader:
             shader_memory := bgfx.make_ref(raw_data(asset.data), cast(u32)len(asset.data))
             if shader_memory == nil do return
             data.asset.handle = bgfx.create_shader(shader_memory)
-            intrinsics.atomic_store(&data.asset.info.is_loading, false)
             intrinsics.atomic_store(&data.asset.info.is_loaded, true)
+            intrinsics.atomic_store(&data.asset.info.is_loading, false)
             if data.asset.handle != bgfx.INVALID_HANDLE && data.on_loaded != nil do data.on_loaded(data.asset, data.user_data)
+            //TODO: treat when cant create the asset
             return
 
         case .Program:
-            // program_asset: BGFX_Program_Asset
-            // json.unmarshal(asset.data, &program_asset, json.DEFAULT_SPECIFICATION, context.temp_allocator)//TODO: check error
-            // pg_data, pg_data_err := new(BGFX_Load_Program_Data, data.streamer.stream_allocator)
-            // if pg_data_err != .None do return
-            // pg_data.streamer = data.streamer
-            // pg_data.program_asset = data.asset
-            // if !bgfx_streamer_require_asset(data.streamer, data.bgfx_streamer, data.pool, program_asset.vs, .Shader, 2, auto_cast bgfx_load_program_on_vs_shader_loaded, pg_data)
-            // {
-            //     //TODO: log error
-            //     log_verbose_error("Failed to require bgfx vertex shader asset")
-            //     free(pg_data, data.streamer.stream_allocator)
-            //     return
-            // }
-            // if !bgfx_streamer_require_asset(data.streamer, data.bgfx_streamer, data.pool, program_asset.fs, .Shader, 2, auto_cast bgfx_load_program_on_fs_shader_loaded, pg_data)
-            // {
-            //     //TODO: log error
-            //     log_verbose_error("Failed to require bgfx fragment shader asset")
-            //     free(pg_data, data.streamer.stream_allocator)
-            //     return
-            // }
+            program_asset: BGFX_Program_Asset
+            json.unmarshal(asset.data, &program_asset, json.DEFAULT_SPECIFICATION, context.temp_allocator)//TODO: check error
+
+            data.asset.asset_info.program.vs_asset = bgfx_streamer_require_asset(data.streamer, data.bgfx_streamer, data.pool, program_asset.vs, .Shader, 0, auto_cast _bgfx_load_program_on_shader_loaded, data.asset)
+            if data.asset.asset_info.program.vs_asset == nil
+            {
+                log_verbose_error("Failed to require bgfx vertex shader asset")
+                return
+            }
+
+            data.asset.asset_info.program.fs_asset = bgfx_streamer_require_asset(data.streamer, data.bgfx_streamer, data.pool, program_asset.fs, .Shader, 0, auto_cast _bgfx_load_program_on_shader_loaded, data.asset)
+            if data.asset.asset_info.program.fs_asset == nil
+            {
+                log_verbose_error("Failed to require bgfx fragment shader asset")
+                asset_dispose(data.asset.asset_info.program.vs_asset)
+                return
+            }
+
+            //TODO: treat when cant create the asset
             return
     }
 }
 
-// BGFX_Load_Program_Data :: struct
-// {
-//     streamer: ^Streamer,
-//     program_asset,
-//     vs_asset, fs_asset: ^BGFX_Asset,
-// }
-
-// bgfx_load_program_on_vs_shader_loaded :: proc(asset: ^BGFX_Asset, data: ^BGFX_Load_Program_Data)
-// {
-//     data.vs_asset = asset
-//     for data.fs_asset == nil || !asset_is_loaded(data.fs_asset) do return
-//     data.program_asset.handle = bgfx.create_program(data.vs_asset.handle, data.fs_asset.handle, false)
-//     intrinsics.atomic_store(&data.program_asset.info.is_loading, false)
-//     intrinsics.atomic_store(&data.program_asset.info.is_loaded, data.program_asset.handle != bgfx.INVALID_HANDLE)
-//     allocator := data.streamer.stream_allocator
-//     free(data, allocator)
-//     log_verbose_debug("Loaded some bgfx program from vertex shader callback")
-// }
-
-// bgfx_load_program_on_fs_shader_loaded :: proc(asset: ^BGFX_Asset, data: ^BGFX_Load_Program_Data)
-// {
-//     data.fs_asset = asset
-//     for data.vs_asset == nil || !asset_is_loaded(data.vs_asset) do return
-//     data.program_asset.handle = bgfx.create_program(data.vs_asset.handle, data.fs_asset.handle, false)
-//     intrinsics.atomic_store(&data.program_asset.info.is_loading, false)
-//     intrinsics.atomic_store(&data.program_asset.info.is_loaded, data.program_asset.handle != bgfx.INVALID_HANDLE)
-//     allocator := data.streamer.stream_allocator
-//     free(data, allocator)
-//     log_verbose_debug("Loaded some bgfx program from fragment shader callback")
-// }
+/* Only for internal usage */
+_bgfx_load_program_on_shader_loaded :: proc(shader_asset: ^BGFX_Asset, program_asset: ^BGFX_Asset)
+{
+    vs_asset := program_asset.asset_info.program.vs_asset
+    if vs_asset == nil || !asset_is_loaded(vs_asset)
+    {
+        log_verbose_debug("Cant create program now, vertex shader is not loaded")
+        return
+    }
+    
+    fs_asset := program_asset.asset_info.program.fs_asset
+    if fs_asset == nil || !asset_is_loaded(fs_asset)
+    {
+        log_verbose_error("Cant create program, fragment shader is not loaded")
+        return
+    }
+    
+    program_asset.handle = bgfx.create_program(vs_asset.handle, fs_asset.handle, false)
+    intrinsics.atomic_store(&program_asset.info.is_loaded, program_asset.handle != bgfx.INVALID_HANDLE)
+    intrinsics.atomic_store(&program_asset.info.is_loading, false)
+    //TODO: treat when cant create the asset
+    log_verbose_debug("Created bgfx program", program_asset.handle)
+}
 
 bgfx_streamer_frame :: proc(streamer: ^BGFX_Streamer)
 {
