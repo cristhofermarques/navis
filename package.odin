@@ -447,9 +447,31 @@ LOAD_ASSET_TASK_ID :: 1_001
 
 Proc_On_Asset_Loaded :: proc(^Asset, rawptr)
 
-/*
-Load asset task data
-*/
+Streamer_Task_Data :: union
+{
+    Streamer_Load_Asset_Task_Data,
+    Streamer_Wait_Asset_Task_Data,
+}
+
+Streamer_Load_Asset_Task_Data :: struct
+{
+    context_: runtime.Context,
+    streamer: ^Streamer,
+    asset_info: Package_Asset_Info,
+    on_loaded: Proc_On_Asset_Loaded,
+    user_data: rawptr,
+}
+
+Streamer_Wait_Asset_Task_Data :: struct
+{
+    streamer: ^Streamer,
+    asset: ^Asset,
+    on_loaded: Proc_On_Asset_Loaded,
+    user_data: rawptr,
+    called_on_loaded: bool,
+}
+
+//DEP
 Load_Asset_Task_Data :: struct
 {
     context_: runtime.Context,
@@ -499,22 +521,13 @@ Package_Streamer :: struct
     stream_allocator: runtime.Allocator,
 }
 
-Streamer_Descriptor :: struct
-{
-    assets_chunk_capacity,
-    assets_map_initial_capacity,
-    wait_tasks_initial_capacity: int,
-    stream_allocator: runtime.Allocator,
-    paths: []string,
-}
-
 Streamer :: struct
 {
     mutex: sync.Mutex,
     assets: Collection(Asset),
+    task_datas: Collection(Streamer_Task_Data),
     assets_map: map[string]Package_Asset_Info,
     package_streamers: map[string]Package_Streamer,
-    wait_tasks: [dynamic]Wait_Asset_Task,
     stream_allocator: runtime.Allocator,
 }
 
@@ -721,10 +734,20 @@ streamer_init :: proc(streamer: ^Streamer, paths: []string, assets_chunk_capacit
         return false
     }
 
+    //TODO: add task datas chunk capacity
+    task_datas, created_task_datas := collection_create(Streamer_Task_Data, assets_chunk_capacity, 2, allocator)
+    if !created_task_datas
+    {
+        log_verbose_error("Failed to create assets collection")
+        collection_destroy(&assets)
+        return false
+    }
+
     assets_map, assets_map_allocation_error := make_map(map[string]Package_Asset_Info, assets_map_initial_capacity, allocator)
     if assets_map_allocation_error != .None
     {
         log_verbose_error("Failed to allocate assets map", assets_map_allocation_error)
+        collection_destroy(&task_datas)
         collection_destroy(&assets)
         return false
     }
@@ -734,6 +757,7 @@ streamer_init :: proc(streamer: ^Streamer, paths: []string, assets_chunk_capacit
     {
         log_verbose_error("Failed to allocate package streamers map", package_streamers_allocation_error)
         delete(assets_map)
+        collection_destroy(&task_datas)
         collection_destroy(&assets)
         return false
     }
@@ -753,26 +777,28 @@ streamer_init :: proc(streamer: ^Streamer, paths: []string, assets_chunk_capacit
         for package_name, &package_streamer in package_streamers do package_streamer_destroy(&package_streamer, allocator)
         delete(package_streamers)
         delete(assets_map)
+        collection_destroy(&task_datas)
         collection_destroy(&assets)
         return false
     }
 
-    wait_tasks, wait_tasks_allocation_error := make_dynamic_array_len_cap([dynamic]Wait_Asset_Task, 0, 100, allocator)
-    if wait_tasks_allocation_error != .None
-    {
-        log_verbose_error("Failed to allocate wait task dynamic slice", wait_tasks_allocation_error)
-        for package_name, &package_streamer in package_streamers do package_streamer_destroy(&package_streamer, allocator)
-        delete(package_streamers)
-        delete(assets_map)
-        collection_destroy(&assets)
-        return false
-    }
+    // wait_tasks, wait_tasks_allocation_error := make_dynamic_array_len_cap([dynamic]Wait_Asset_Task, 0, 100, allocator)
+    // if wait_tasks_allocation_error != .None
+    // {
+    //     log_verbose_error("Failed to allocate wait task dynamic slice", wait_tasks_allocation_error)
+    //     for package_name, &package_streamer in package_streamers do package_streamer_destroy(&package_streamer, allocator)
+    //     delete(package_streamers)
+    //     delete(assets_map)
+    //     collection_destroy(&task_datas)
+    //     collection_destroy(&assets)
+    //     return false
+    // }
 
     //Mapping all asset seek infos
     streamer.assets = assets
+    streamer.task_datas = task_datas
     streamer.assets_map = assets_map
     streamer.package_streamers = package_streamers
-    streamer.wait_tasks = wait_tasks
     streamer.stream_allocator = stream_allocator
     for package_name, &package_streamer in package_streamers
     {
@@ -787,6 +813,7 @@ streamer_init :: proc(streamer: ^Streamer, paths: []string, assets_chunk_capacit
 streamer_destroy :: proc(streamer: ^Streamer, allocator := context.allocator) -> bool
 {
     if streamer == nil do return false
+    collection_destroy(&streamer.task_datas)
     for asset_name, asset in streamer.assets_map
     {
         if asset.asset == nil || asset.asset.data == nil do continue
@@ -799,78 +826,76 @@ streamer_destroy :: proc(streamer: ^Streamer, allocator := context.allocator) ->
     for package_name, &package_streamer in streamer.package_streamers do package_streamer_destroy(&package_streamer, allocator)
     delete(streamer.package_streamers)
     streamer.package_streamers = nil
-    delete(streamer.wait_tasks)
-    streamer.wait_tasks = nil
     log_debug("Destroyed streamer")
     return true
 }
 
-streamer_get :: proc "contextless" (streamer: ^Streamer, asset_name: string) -> ^Asset
+streamer_require_asset :: proc(streamer: ^Streamer, pool: ^thread.Pool, asset_name: string, on_loaded: Proc_On_Asset_Loaded = nil, user_data : rawptr = nil, idle_frames := 0) -> ^Asset
 {
-    if streamer == nil do return nil
-    return streamer.assets_map[asset_name].asset
-}
-
-streamer_require :: proc(streamer: ^Streamer, pool: ^thread.Pool, asset_name: string, on_loaded: Proc_On_Asset_Loaded = nil, user_data : rawptr = nil, idle_frames := 0) -> bool
-{
-    if streamer == nil || pool == nil do return false
-
     sync.mutex_lock(&streamer.mutex)
     defer sync.mutex_unlock(&streamer.mutex)
 
-    info := streamer.assets_map[asset_name]
-    if info.package_name == "" do return false
+    asset_info := streamer.assets_map[asset_name]
+    if asset_info.package_name == "" do return nil
 
-    if info.asset == nil
+    if asset := asset_info.asset; asset != nil
     {
-        package_streamer := &streamer.package_streamers[info.package_name]
-        if package_streamer.package_name != info.package_name do return false
-
-        task_data, task_data_error := new(Load_Asset_Task_Data, package_streamer.stream_allocator)
-        if task_data_error != .None do return false
-        //TODO: log error
-
-        asset := collection_sub_allocate(&streamer.assets)
-        if asset == nil
-        {
-            //TODO: log error
-            free(task_data)
-            return false
-        }
-        asset^ = {}
-        
         asset_require(asset, idle_frames)
-        info.asset = asset
-        streamer.assets_map[asset_name] = info
-        task_data.context_ = context
-        task_data.streamer = streamer
-        task_data.asset_info = info
-        task_data.on_loaded = on_loaded
-        task_data.user_data = user_data
+        log_verbose_debug("Added requirement to asset", asset_name)
+        if on_loaded == nil do return asset
 
-        sync.lock(&package_streamer.mutex)
-        defer sync.unlock(&package_streamer.mutex)
-
-        package_streamer_add_assets_to_load(package_streamer)
-        thread.pool_add_task(pool, package_streamer.stream_allocator, asset_load_task, task_data, LOAD_ASSET_TASK_ID)
-        log_verbose_debug("Added task to load asset", asset_name, "of package", info.package_name)
-    }
-    else
-    {
-        asset := info.asset
-        asset_require(asset, idle_frames)
-        if on_loaded == nil do return true //Its wait task but there is no callback
         if asset_is_loaded(asset)
         {
-            log_verbose_debug("Asset", asset_name, "of package", info.package_name, "is already loaded")
+            log_verbose_debug("Calling on loaded callback, asset", asset_name, "is already loaded")
             on_loaded(asset, user_data)
-            return true
+            return asset
         }
-        if !asset_is_loading(asset) do return false
-        append(&streamer.wait_tasks, Wait_Asset_Task{user_data, asset, on_loaded})
-        log_verbose_debug("Added wait task for asset", asset_name, "of package", info.package_name)
+        
+        if asset_is_loading(asset)
+        {
+            log_verbose_debug("Asset", asset_name, "is loading, adding a wait task")
+            wait_asset_task_data: ^Streamer_Task_Data = collection_sub_allocate(&streamer.task_datas)
+            if wait_asset_task_data == nil
+            {
+                return nil
+            }
+            wait_asset_task_data^ = Streamer_Wait_Asset_Task_Data{streamer, asset, on_loaded, user_data, false}
+            return asset
+        }
     }
-    return true
+
+    //Loading
+    package_streamer := &streamer.package_streamers[asset_info.package_name]
+    if package_streamer.package_name != asset_info.package_name do return nil
+
+    load_task_data := collection_sub_allocate(&streamer.task_datas)
+    if load_task_data == nil
+    {
+        log_verbose_error("Failed to sub allocate asset load task data from collection")
+        return nil
+    }
+    
+    asset := collection_sub_allocate(&streamer.assets)
+    if asset == nil
+    {
+        log_verbose_error("Failed to sub allocate asset from collection")
+        collection_free(&streamer.task_datas, load_task_data)
+        return asset
+    }
+    asset^ = {}
+    asset_info.asset = asset
+    streamer.assets_map[asset_name] = asset_info
+    
+    asset_require(asset, idle_frames)
+    load_task_data^ = Streamer_Load_Asset_Task_Data{context, streamer, asset_info, on_loaded, user_data}
+
+    sync.lock(&package_streamer.mutex)
+    defer sync.unlock(&package_streamer.mutex)
+
+    package_streamer_add_assets_to_load(package_streamer)
+    pool_add_task(pool, package_streamer.stream_allocator, _asset_load_task, load_task_data, Task_ID.Load_Asset)
+    log_verbose_debug("Added task to load asset", asset_name, "of package", asset_info.package_name)
+    return asset
 }
 
 streamer_dispose :: proc(streamer: ^Streamer, asset_name: string, idle_frames := 0) -> bool
@@ -895,23 +920,62 @@ streamer_dispose :: proc(streamer: ^Streamer, asset_name: string, idle_frames :=
 
 streamer_frame :: proc(streamer: ^Streamer, pool: ^thread.Pool)
 {
-    tasks := pool_list(pool, LOAD_ASSET_TASK_ID, context.temp_allocator)
-    if tasks != nil do for &task in tasks
+    //Removing done asset load tasks, and adding callback tasks
+    load_tasks := pool_list(pool, .Load_Asset, context.temp_allocator)
+    if load_tasks != nil do for &task in load_tasks
     {
-        task_data := transmute(^Load_Asset_Task_Data)task.data
+        task_data := transmute(^Streamer_Load_Asset_Task_Data)task.data
         package_streamer := &task_data.streamer.package_streamers[task_data.asset_info.package_name]
         package_streamer_sub_assets_to_load(package_streamer)
-        if task_data.on_loaded != nil do task_data.on_loaded(task_data.asset_info.asset, task_data.user_data)
-        free(task_data, task.allocator)
+        if task_data.on_loaded != nil do pool_add_task(pool, context.allocator, _asset_load_callback_task, task_data, .Load_Asset_Callback)
+        else do collection_free(&streamer.task_datas, transmute(^Streamer_Task_Data)task.data)
+        fmt.println("Sending")
+        //TODO: log debug
     }
 
-    //TODO: make callback calls be called from pool.
-
-    #reverse for &wait_task, i in streamer.wait_tasks
+    //Just removing asset load callback tasks
+    load_callback_tasks := pool_list(pool, .Load_Asset_Callback, context.temp_allocator)
+    if load_callback_tasks != nil do for &task in load_callback_tasks
     {
-        if !asset_is_loaded(wait_task.asset) do continue
-        wait_task.on_loaded(wait_task.asset, wait_task.user_data)
-        ordered_remove(&streamer.wait_tasks, i)
+        collection_free(&streamer.task_datas, transmute(^Streamer_Task_Data)task.data)
+        fmt.println("Callback")
+        //TODO: log debug
+    }
+    
+    //Wait tasks
+    wait_task_iterations := 0
+    for &chunk in streamer.task_datas.chunks
+    {
+        chunk_wait_task_iterations := 0
+        for &task_data in chunk.slots
+        {
+            if !task_data.used do continue
+            switch &_task_data in task_data.data
+            {
+                case Streamer_Load_Asset_Task_Data: continue
+                case Streamer_Wait_Asset_Task_Data:
+                    is_loading := asset_is_loading(_task_data.asset)
+                    is_loaded := asset_is_loaded(_task_data.asset)
+                    if !_task_data.called_on_loaded
+                    {
+                        _task_data.called_on_loaded = true
+                        pool_add_task(pool, context.allocator, _asset_wait_callback_task, &_task_data, .Wait_Asset_Callback)
+                    }
+            }
+            chunk_wait_task_iterations += 1
+            if chunk_wait_task_iterations == chunk.sub_allocations do break
+        }
+        wait_task_iterations += chunk_wait_task_iterations
+        if wait_task_iterations == streamer.task_datas.sub_allocations do break
+    }
+
+    //Just removing done asset wait callback tasks
+    wait_callback_tasks := pool_list(pool, .Wait_Asset_Callback, context.temp_allocator)
+    if wait_callback_tasks != nil do for &task in wait_callback_tasks
+    {
+        collection_free(&streamer.task_datas, transmute(^Streamer_Task_Data)task.data)
+        fmt.println("Wait Callback")
+        //TODO: log debug
     }
     
     for asset_name, &asset_info in streamer.assets_map
@@ -998,9 +1062,12 @@ streamer_load_asset :: proc(streamer: ^Streamer, asset_name: string, idle_frames
     return asset
 }
 
-asset_load_task :: proc(task: thread.Task)
+/*
+Procedure that do the job of loading asset using IO.
+*/
+_asset_load_task :: proc(task: thread.Task)
 {
-    data := transmute(^Load_Asset_Task_Data)task.data
+    data := transmute(^Streamer_Load_Asset_Task_Data)task.data
     context = data.context_
     package_streamer := &data.streamer.package_streamers[data.asset_info.package_name]
     
@@ -1022,4 +1089,23 @@ asset_load_task :: proc(task: thread.Task)
     
     intrinsics.atomic_store(&asset.info.is_loaded, true)
     asset.data = asset_data
+}
+
+/*
+Procedure that do the job of calling the callback function when asset is loaded.
+*/
+_asset_load_callback_task :: proc(task: thread.Task)
+{
+    data := transmute(^Streamer_Load_Asset_Task_Data)task.data
+    fmt.println("Asset load Callback")
+    data.on_loaded(data.asset_info.asset, data.user_data)
+}
+import "core:fmt"
+/*
+Procedure that do the job of calling the callback function when asset is loaded for wait tasks.
+*/
+_asset_wait_callback_task :: proc(task: thread.Task)
+{
+    data := transmute(^Wait_Asset_Task)task.data
+    data.on_loaded(data.asset, data.user_data)
 }
