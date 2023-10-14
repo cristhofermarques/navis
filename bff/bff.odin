@@ -194,12 +194,12 @@ unmarshal :: proc(data: []byte, x: ^$T)
 unmarshal_recursive :: proc(fields: ^map[string][]byte, raw_struct: runtime.Raw_Any, parent_name: string, separator := ".")
 {
     struct_fields := reflect.struct_fields_zipped(raw_struct.id)
-    for struct_field in struct_fields
+    for &struct_field in struct_fields
     {
         struct_field_path := strings.concatenate({parent_name, separator, struct_field.name}, context.temp_allocator)
         struct_field_value := reflect.struct_field_value_by_name(transmute(any)raw_struct, struct_field.name)
         raw_any_struct_field_value := transmute(runtime.Raw_Any)struct_field_value
-
+        
         if reflect.is_struct(struct_field.type) do unmarshal_recursive(fields, raw_any_struct_field_value, struct_field_path)
         else if field_data := fields[struct_field_path]; field_data != nil
         {
@@ -209,13 +209,13 @@ unmarshal_recursive :: proc(fields: ^map[string][]byte, raw_struct: runtime.Raw_
                 length := len(field_data) / reflect.size_of_typeid(reflect.typeid_elem(struct_field.type.id))
                 raw_struct_field_value.data = raw_data(field_data)
                 raw_struct_field_value.len = length
-                break
+                continue
             }
             else if reflect.is_array(struct_field.type) || reflect.is_integer(struct_field.type) || reflect.is_float(struct_field.type) || reflect.is_boolean(struct_field.type)
             {
                 mem.copy(raw_any_struct_field_value.data, raw_data(field_data), len(field_data))
                 raw_any_struct_field_value.id = struct_field.type.id
-                break
+                continue
             }
         }
     }
