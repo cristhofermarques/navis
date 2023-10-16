@@ -1,9 +1,9 @@
 [submodule "jobs"]
 	path = jobs
 	url = https://github.com/jakubtomsu/jobs.git
-[submodule "odin-reactphysics3d"]
+[submodule "rp3d"]
 	path = rp3d
 	url = https://github.com/cristhofermarques/odin-reactphysics3d.git
-[submodule "odin-box2d"]
+[submodule "box2d"]
 	path = box2d
 	url = https://github.com/cristhofermarques/odin-box2d.git
