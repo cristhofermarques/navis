@@ -50,7 +50,6 @@ RP3D_F64 :: #config(RP3D_F64, false)
 when ODIN_OS == .Windows && ODIN_ARCH == .amd64 && ODIN_DEBUG && !RP3D_F64 do foreign import rp3d {
     "binaries/rp3d_windows_amd64_debug_f32.lib",
     "binaries/crp3d_windows_amd64_debug_f32.lib",
-    "system:libcmtd.lib",
 }
 
 when ODIN_OS == .Windows && ODIN_ARCH == .amd64 && !ODIN_DEBUG && !RP3D_F64 do foreign import rp3d {
