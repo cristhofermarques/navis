@@ -813,16 +813,16 @@ InstanceDataBuffer :: struct {
 	handle : Vertex_Buffer_Handle,
 }
 
-TextureInfo :: struct {
-	format : Texture_Format,
-	storageSize : u32,
-	width : u16,
-	height : u16,
-	depth : u16,
-	numLayers : u16,
-	numMips : u8,
-	bitsPerPixel : u8,
-	cubeMap : u8,
+Texture_Info :: struct {
+	format: Texture_Format,
+	storage_size: u32,
+	width,
+	height,
+	depth,
+	num_layers: u16,
+	num_mips,
+	bits_per_pixel: u8,
+	cube_map: bool,
 }
 
 Uniform_Info :: struct {
@@ -1180,10 +1180,10 @@ foreign bgfx
     is_frame_buffer_valid :: proc "c" (_num: u8, _attachment: ^Attachment) -> b8 ---
 
     @(link_name="bgfx_calc_texture_size")
-    calc_texture_size :: proc "c" (_info: ^TextureInfo, _width: u16, _height: u16, _depth: u16, _cubeMap: b8, _hasMips: b8, _numLayers: u16, _format: Texture_Format) ---
+    calc_texture_size :: proc "c" (_info: ^Texture_Info, _width: u16, _height: u16, _depth: u16, _cubeMap: b8, _hasMips: b8, _numLayers: u16, _format: Texture_Format) ---
 
     @(link_name="bgfx_create_texture")
-    create_texture :: proc "c" (_mem: ^Memory, _flags: u64, _skip: u8, _info: ^TextureInfo) -> Texture_Handle ---
+    create_texture :: proc "c" (_mem: ^Memory, _flags: u64, _skip: u8, _info: ^Texture_Info) -> Texture_Handle ---
 
     @(link_name="bgfx_create_texture_2d")
     create_texture_2d :: proc "c" (_width: u16, _height: u16, _hasMips: b8, _numLayers: u16, _format: Texture_Format, _flags: u64, _mem: ^Memory) -> Texture_Handle ---
