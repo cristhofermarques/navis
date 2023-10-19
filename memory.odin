@@ -239,11 +239,11 @@ index_table_remove :: proc(table: ^Index_Table($T), id: Index_Table_ID) -> bool
 
 Chunk :: struct($T: typeid)
 {
+    mutex: sync.Mutex,
     seek: int,
     sub_allocations: int,
     slots: []bool,
     content: []T,
-    mutex: sync.Atomic_Mutex,
 }
 
 chunk_init :: proc(chunk: ^Chunk($T), capacity: int, allocator := context.allocator) -> bool
@@ -292,10 +292,25 @@ chunk_destroy :: proc(chunk: ^Chunk($T), allocator := context.allocator) -> bool
     return true
 }
 
+chunk_sub_allocations :: #force_inline proc "contextless" (chunk: ^Chunk($T)) -> int
+{
+    return intrinsics.atomic_load(&chunk.sub_allocations)
+}
+
+chunk_is_empty :: #force_inline proc "contextless" (chunk: ^Chunk($T)) -> bool
+{
+    return intrinsics.atomic_load(&chunk.sub_allocations,) == 0
+}
+
+chunk_is_full :: #force_inline proc "contextless" (chunk: ^Chunk($T)) -> bool
+{
+    return intrinsics.atomic_load(&chunk.sub_allocations,) == len(chunk.slots)
+}
+
 chunk_sub_allocate :: proc(chunk: ^Chunk($T)) -> ^T
 {
-    sync.atomic_mutex_lock(&chunk.mutex)
-    defer sync.atomic_mutex_unlock(&chunk.mutex)
+    sync.lock(&chunk.mutex)
+    defer sync.unlock(&chunk.mutex)
 
     if chunk_is_full(chunk) do return nil
     
@@ -322,15 +337,14 @@ chunk_sub_allocate :: proc(chunk: ^Chunk($T)) -> ^T
         return data
     }
 
+    //Failed
     return nil
 }
 
 chunk_free :: proc "contextless" (chunk: ^Chunk($T), data: ^T) -> bool
 {
-    if chunk == nil || data == nil do return false
-
-    sync.atomic_mutex_lock(&chunk.mutex)
-    defer sync.atomic_mutex_unlock(&chunk.mutex)
+    sync.lock(&chunk.mutex)
+    defer sync.unlock(&chunk.mutex)
 
     index := chunk_index_of(chunk, data)
     if index < 0 do return false
@@ -339,7 +353,6 @@ chunk_free :: proc "contextless" (chunk: ^Chunk($T), data: ^T) -> bool
     chunk.sub_allocations -= 1
 
     if index < chunk.seek do chunk.seek = index
-
     return true
 }
 
@@ -347,18 +360,6 @@ chunk_free :: proc "contextless" (chunk: ^Chunk($T), data: ^T) -> bool
 chunk_seek_to_next :: proc "contextless" (chunk: ^Chunk($T))
 {
     chunk.seek = min(chunk.seek + 1, len(chunk.slots) - 1)
-}
-
-chunk_is_empty :: proc "contextless" (chunk: ^Chunk($T)) -> bool
-{
-    if chunk == nil do return false
-    return chunk.sub_allocations == 0
-}
-
-chunk_is_full :: proc "contextless" (chunk: ^Chunk($T)) -> bool
-{
-    if chunk == nil do return false
-    return chunk.sub_allocations == len(chunk.slots)
 }
 
 chunk_has :: proc "contextless" (chunk: ^Chunk($T), data: ^T) -> bool
