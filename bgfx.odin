@@ -30,6 +30,7 @@ BGFX_Asset_Type :: enum
     Program,
     Vertex_Buffer,
     Index_Buffer,
+    Texture,
 }
 
 BGFX_Asset :: struct
@@ -41,7 +42,8 @@ BGFX_Asset :: struct
     {
         vertex_count: struct{vertex_count: u32},
         index_count: struct{index_count: u32},
-        program: struct{vs_asset, fs_asset: ^BGFX_Asset}
+        program: struct{vs_asset, fs_asset: ^BGFX_Asset},
+        texture: bgfx.Texture_Info
     }
 }
 
@@ -272,6 +274,7 @@ on_bgfx_asset_loaded :: proc(asset: ^Asset, data: ^BGFX_Asset_Load_Data)
         }
 
         case .Program:
+        {
             program_asset: BGFX_Program_Asset
             json.unmarshal(asset.data, &program_asset, json.DEFAULT_SPECIFICATION, context.temp_allocator)//TODO: check error
 
@@ -293,6 +296,34 @@ on_bgfx_asset_loaded :: proc(asset: ^Asset, data: ^BGFX_Asset_Load_Data)
             //TODO: treat when cant create the asset
             log_verbose_debug("Requested to load shaders VS", program_asset.vs, "and FS", program_asset.fs,  " for program creation")
             return
+        }
+
+        case .Texture:
+        {
+            defer intrinsics.atomic_store(&data.asset.info.is_loading, false)
+            defer collection_free(&data.bgfx_streamer.job_data_collection, data)
+
+            texture_memory := bgfx.make_ref(raw_data(asset.data), cast(u32)len(asset.data))
+            if texture_memory == nil
+            {
+                log_verbose_error("Failed to make bgfx memory reference of data for texture")
+                return
+            }
+
+            handle := bgfx.create_texture(texture_memory, 0, 0, &data.asset.asset_info.texture)
+            if handle == bgfx.INVALID_HANDLE
+            {
+                log_verbose_error("Failed to create bgfx texture", texture_memory)
+                return
+            }
+
+            data.asset.handle = handle
+            intrinsics.atomic_store(&data.asset.info.is_loaded, true)
+            log_verbose_error("Created bgfx texture", handle, data.asset.asset_info.texture)
+            
+            if data.asset.handle != bgfx.INVALID_HANDLE && data.on_loaded != nil do data.on_loaded(data.asset, data.user_data)
+            return
+        }
     }
 }
 
@@ -383,6 +414,9 @@ bgfx_asset_destroy :: proc(asset: ^BGFX_Asset)
             asset_dispose(asset.asset_info.program.vs_asset)
             asset_dispose(asset.asset_info.program.fs_asset)
             bgfx.destroy_program(asset.handle)
+
+        case .Texture:
+            bgfx.destroy_texture(asset.handle)
     }
 }
 
