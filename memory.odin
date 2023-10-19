@@ -237,58 +237,62 @@ index_table_remove :: proc(table: ^Index_Table($T), id: Index_Table_ID) -> bool
 
 /* Chunk */
 
-/*
-Return slot size of provided type
-*/
-slot_size_of :: proc "contextless" ($T: typeid) -> int
-{
-    return size_of(Chunk_Slot(T))
-}
-
-/*
-Return slot data offset of provided type
-*/
-slot_data_offset_of :: proc "contextless" ($T: typeid) -> uintptr
-{
-    return offset_of(Chunk_Slot(T), data)
-}
-
-Chunk_Slot :: struct($T: typeid)
-{
-    used: bool,
-    data: T,
-}
-
 Chunk :: struct($T: typeid)
 {
-    seek: ^Chunk_Slot(T),
+    seek: int,
     sub_allocations: int,
-    slots: []Chunk_Slot(T),
+    slots: []bool,
+    content: []T,
     mutex: sync.Atomic_Mutex,
 }
 
-chunk_create :: proc($T: typeid, capacity: int, allocator := context.allocator) -> (Chunk(T), bool) #optional_ok
+chunk_init :: proc(chunk: ^Chunk($T), capacity: int, allocator := context.allocator) -> bool
 {
-    if capacity < 1 do return {}, false
+    if capacity < 1
+    {
+        log_verbose_error("Invalid chunk capacity", capacity)
+        return false
+    }
+    
+    slots, slots_allocation_error := make([]bool, capacity, allocator)
+    if slots_allocation_error != .None
+    {
+        log_verbose_error("Failed to allocate chunk slots slice", slots_allocation_error)
+        return false
+    }
 
-    slots, slots_allocation_error := make([]Chunk_Slot(T), capacity, allocator)
-    if slots_allocation_error != .None do return {}, false
+    content, content_allocation_error := make([]T, capacity, allocator)
+    if content_allocation_error != .None
+    {
+        log_verbose_error("Failed to allocate chunk content slice", content_allocation_error)
+        delete(slots, allocator)
+        return false
+    }
 
-    chunk: Chunk(T)
-    chunk.seek = &slots[0]
+    for &slot in slots do slot = false
+
+    chunk.seek = 0
     chunk.slots = slots
-    return chunk, true
+    chunk.content = content
+    log_verbose_debug("Created a chunk")
+    return true
 }
 
 chunk_destroy :: proc(chunk: ^Chunk($T), allocator := context.allocator) -> bool
 {
-    if chunk == nil do return false
+    if chunk == nil
+    {
+        log_verbose_error("Invalid chunk parameter", chunk)
+        return false
+    }
     delete(chunk.slots, allocator)
+    delete(chunk.content, allocator)
     chunk^ = {}
+    log_verbose_debug("Destroyed a chunk")
     return true
 }
 
-chunk_sub_allocate :: proc "contextless" (chunk: ^Chunk($T)) -> ^T
+chunk_sub_allocate :: proc(chunk: ^Chunk($T)) -> ^T
 {
     sync.atomic_mutex_lock(&chunk.mutex)
     defer sync.atomic_mutex_unlock(&chunk.mutex)
@@ -296,24 +300,24 @@ chunk_sub_allocate :: proc "contextless" (chunk: ^Chunk($T)) -> ^T
     if chunk_is_full(chunk) do return nil
     
     //Cache
-    if !chunk.seek.used
+    if !chunk.slots[chunk.seek]
     {
-        chunk.seek.used = true
-        data := &chunk.seek.data
+        chunk.slots[chunk.seek] = true
+        data := &chunk.content[chunk.seek]
         chunk.sub_allocations += 1
         if !chunk_is_full(chunk) do chunk_seek_to_next(chunk)
+        log_verbose_debug("Sub allocated", data)
         return data
     }
 
     //Search
     for i := 0; i < len(chunk.slots); i += 1
     {
-        seek := &chunk.slots[i]
-        if seek.used do continue
-        seek.used = true
-        data := &seek.data
+        if chunk.slots[chunk.seek] do continue
+        chunk.slots[chunk.seek] = true
+        data := &chunk.content[i]
         chunk.sub_allocations += 1
-        chunk.seek = seek
+        chunk.seek = i
         if !chunk_is_full(chunk) do chunk_seek_to_next(chunk)
         return data
     }
@@ -331,11 +335,10 @@ chunk_free :: proc "contextless" (chunk: ^Chunk($T), data: ^T) -> bool
     index := chunk_index_of(chunk, data)
     if index < 0 do return false
 
-    slot := &chunk.slots[index]
-    slot.used = false
+    chunk.slots[index] = false
     chunk.sub_allocations -= 1
 
-    if slot < chunk.seek do chunk.seek = slot
+    if index < chunk.seek do chunk.seek = index
 
     return true
 }
@@ -343,11 +346,7 @@ chunk_free :: proc "contextless" (chunk: ^Chunk($T), data: ^T) -> bool
 @(private)
 chunk_seek_to_next :: proc "contextless" (chunk: ^Chunk($T))
 {
-    last := chunk_get_last(chunk)
-    uptr_last := transmute(uintptr)last
-    uptr_seek := transmute(uintptr)chunk.seek
-    next := uptr_seek + uintptr(size_of(Chunk_Slot(T)))
-    chunk.seek = transmute(^Chunk_Slot(T))min(next, uptr_last)
+    chunk.seek = min(chunk.seek + 1, len(chunk.slots) - 1)
 }
 
 chunk_is_empty :: proc "contextless" (chunk: ^Chunk($T)) -> bool
@@ -375,165 +374,14 @@ chunk_has :: proc "contextless" (chunk: ^Chunk($T), data: ^T) -> bool
     return uptr_data >= uptr_begin && uptr_data < uptr_end
 }
 
-chunk_get_last :: proc "contextless" (chunk: ^Chunk($T)) -> ^Chunk_Slot(T)
-{
-    uptr_begin := transmute(uintptr)raw_data(chunk.slots)
-    return transmute(^Chunk_Slot(T))(uptr_begin + uintptr(max(0, len(chunk.slots) - 1) * size_of(Chunk_Slot(T))))
-}
-
 chunk_index_of :: proc "contextless" (chunk: ^Chunk($T), data: ^T) -> int
 {
     if chunk == nil || data == nil do return -1
     uptr_begin := cast(uintptr)&chunk.slots[0]
-    uptr_data := cast(uintptr)data - offset_of(Chunk_Slot(T), data)
-    begin_to_data_size := max(uptr_begin, uptr_data) - min(uptr_begin, uptr_data)
-    return int(begin_to_data_size) / size_of(Chunk_Slot(T))
-}
-
-Untyped_Chunk :: struct
-{
-    sub_allocations, slot_size: int,
-    seek, slot_data_offset: uintptr,
-    slots: runtime.Raw_Slice,
-    mutex: sync.Atomic_Mutex,
-}
-
-untyped_chunk_create :: proc(slot_size: int, slot_data_offset: uintptr, capacity: int, allocator := context.allocator) -> (Untyped_Chunk, bool) #optional_ok
-{
-    if slot_size < 1 || slot_data_offset < 1 || capacity < 1 do return {}, false
-
-    slots_data_size := slot_size * capacity
-    slots_data, slots_data_allocation_error := mem.alloc(slots_data_size, allocator = allocator)
-    if slots_data_allocation_error != .None do return {}, false
-
-    chunk: Untyped_Chunk
-    chunk.slots.data = slots_data
-    chunk.slots.len = capacity
-    chunk.slot_size = slot_size
-    chunk.slot_data_offset = uintptr(slot_data_offset)
-    chunk.seek = uintptr(slots_data)
-    return chunk, true
-}
-
-untyped_chunk_destroy :: proc(chunk: ^Untyped_Chunk, allocator := context.allocator)
-{
-    if chunk == nil do return
-    mem.free(chunk.slots.data, allocator)
-    chunk^ = {}
-}
-
-untyped_chunk_sub_allocate :: proc "contextless" (chunk: ^Untyped_Chunk) -> rawptr
-{
-    if chunk == nil do return nil
-
-    sync.atomic_mutex_lock(&chunk.mutex)
-    defer sync.atomic_mutex_unlock(&chunk.mutex)
-
-    if untyped_chunk_is_full(chunk) do return nil
-    uptr_slots_data := transmute(uintptr)chunk.slots.data
-    uptr_slot_data_offset := chunk.slot_data_offset
-
-    //Seek
-    uptr_seek_slot_used := chunk.seek    
-    seek_slot_used := transmute(^bool)uptr_seek_slot_used
-    if !seek_slot_used^
-    {
-        seek_slot_used^ = true
-        chunk.sub_allocations += 1
-        if !untyped_chunk_is_full(chunk) do untyped_chunk_seek_to_next(chunk)
-        return rawptr(uptr_seek_slot_used + uptr_slot_data_offset)
-    }
-
-    //Search
-    for i := 0; i < chunk.slots.len; i += 1
-    {
-        uptr_curr_slot_used := uptr_slots_data + uintptr(chunk.slot_size * i)
-        curr_slot_used := transmute(^bool)uptr_curr_slot_used
-        if curr_slot_used^ do continue
-        curr_slot_used^ = true
-        chunk.sub_allocations += 1
-        chunk.seek = uptr_curr_slot_used
-        if !untyped_chunk_is_full(chunk) do untyped_chunk_seek_to_next(chunk)
-        return rawptr(uptr_curr_slot_used + uptr_slot_data_offset)
-    }
-
-    return nil
-}
-
-untyped_chunk_free :: proc "contextless" (chunk: ^Untyped_Chunk, data: rawptr) -> bool
-{
-    if chunk == nil do return false
-    
-    sync.atomic_mutex_lock(&chunk.mutex)
-    defer sync.atomic_mutex_unlock(&chunk.mutex)
-
-    if !untyped_chunk_has(chunk, data) do return false
-    index := untyped_chunk_index_of(chunk, data)
-    if index < 0 do return false
-    uptr_slot_used := uintptr(data) - chunk.slot_data_offset
-    slot_used := transmute(^bool)uptr_slot_used
-    if !slot_used^ do return false
-    slot_used^ = false
-    chunk.sub_allocations -= 1
-    if uptr_slot_used < chunk.seek do chunk.seek = uptr_slot_used
-    return true
-}
-
-@(private)
-untyped_chunk_seek_to_next :: proc "contextless" (chunk: ^Untyped_Chunk)
-{
-    last := untyped_chunk_get_last(chunk)
-    next := chunk.seek + uintptr(chunk.slot_size)
-    chunk.seek = min(next, last)
-}
-
-untyped_chunk_is_empty :: proc "contextless" (chunk: ^Untyped_Chunk) -> bool
-{
-    if chunk == nil do return false
-    return chunk.sub_allocations == 0
-}
-
-untyped_chunk_is_full :: proc "contextless" (chunk: ^Untyped_Chunk) -> bool
-{
-    if chunk == nil do return false
-    return chunk.sub_allocations == chunk.slots.len
-}
-
-untyped_chunk_has :: proc "contextless" (chunk: ^Untyped_Chunk, data: rawptr) -> bool
-{
-    if chunk == nil || data == nil do return false
     uptr_data := transmute(uintptr)data
-    uptr_begin := transmute(uintptr)chunk.slots.data
-    uptr_end := uptr_begin + uintptr(chunk.slots.len * chunk.slot_size)
-    return uptr_data >= uptr_begin && uptr_data < uptr_end
-}
-
-untyped_chunk_get_last :: proc "contextless" (chunk: ^Untyped_Chunk) -> uintptr
-{
-    uptr_begin := transmute(uintptr)chunk.slots.data
-    return uptr_begin + uintptr(max(0, chunk.slots.len - 1)  * chunk.slot_size)
-}
-
-untyped_chunk_index_of :: proc "contextless" (chunk: ^Untyped_Chunk, data: rawptr) -> int
-{
-    if chunk == nil || data == nil do return -1
-    uptr_begin := transmute(uintptr)chunk.slots.data
-    uptr_data := transmute(uintptr)data - chunk.slot_data_offset
     begin_to_data_size := max(uptr_begin, uptr_data) - min(uptr_begin, uptr_data)
-    return int(begin_to_data_size) / chunk.slot_size
+    return int(begin_to_data_size) / size_of(T)
 }
-
-untyped_chunk_as :: proc(chunk: ^Untyped_Chunk, $T: typeid) -> (Chunk(T), bool) #optional_ok
-{
-    if chunk == nil || chunk.slot_size != size_of(Chunk_Slot(T)) || chunk.slot_data_offset != offset_of(Chunk_Slot(T), data) do return {}, false
-    typed: Chunk(T)
-    typed.seek = transmute(^Chunk_Slot(T))chunk.seek
-    typed.slots = transmute([]Chunk_Slot(T))chunk.slots
-    typed.sub_allocations = chunk.sub_allocations
-    return typed, true
-}
-
-/* SOA Chunk */
 
 /*
 The field name when creating a SoA chunk stucture type.
@@ -701,8 +549,8 @@ collection_create :: proc($T: typeid, chunk_capacity, reserve_count: int, alloca
         return {}, false
     }
 
-    initial_chunk, created_initial_chunk := chunk_create(T, chunk_capacity, allocator)
-    if !created_initial_chunk
+    initial_chunk: Chunk(T)
+    if !chunk_init(&initial_chunk, chunk_capacity, allocator)
     {
         //TODO: log error
         delete(chunks)
@@ -730,8 +578,8 @@ collection_destroy :: proc(collection: ^Collection($T)) -> bool
 collection_create_chunk :: proc(collection: ^Collection($T)) -> bool
 {
     if collection == nil do return false
-    chunk, created := chunk_create(T, collection.chunk_capacity, collection.allocator)
-    if !created do return false
+    chunk: Chunk(T)
+    if !chunk_init(&chunk, collection.chunk_capacity, collection.allocator) do return false
     append(&collection.chunks, chunk)
     return true
 }
@@ -846,164 +694,6 @@ collection_get_empty_chunk_count :: proc "contextless" (collection: ^Collection(
 {
     count := 0
     for &chunk in collection.chunks do if chunk_is_empty(&chunk) do count += 1
-    return count
-}
-
-Untyped_Collection :: struct
-{
-    mutex: sync.Atomic_Mutex,
-    allocator: runtime.Allocator,
-    slot_size, chunk_capacity, sub_allocations: int,
-    slot_data_offset: uintptr,
-    seek: ^Untyped_Chunk,
-    chunks: [dynamic]Untyped_Chunk,
-}
-
-untyped_collection_create :: proc(slot_size:int, slot_data_offset: uintptr, chunk_capacity, reserve_count: int, allocator := context.allocator) -> (Untyped_Collection, bool)
-{
-    if slot_size < 1 || slot_data_offset < 1 || chunk_capacity < 1 do return {}, false
-
-    chunks, chunks_allocation_error := make_dynamic_array_len_cap([dynamic]Untyped_Chunk, 1, max(1, reserve_count), allocator)
-    if chunks_allocation_error != .None do return {}, false
-
-    intial_chunk, did_create_intial_chunk := untyped_chunk_create(slot_size, slot_data_offset, chunk_capacity, allocator)
-    if !did_create_intial_chunk
-    {
-        delete(chunks)
-        return {}, false
-    }
-
-    chunks[0] = intial_chunk
-    collection: Untyped_Collection
-    collection.allocator = allocator
-    collection.slot_size = slot_size
-    collection.slot_data_offset = slot_data_offset
-    collection.chunk_capacity = chunk_capacity
-    collection.seek = raw_data(chunks)
-    collection.chunks = chunks
-    return collection, true
-}
-
-untyped_collection_destroy :: proc(collection: ^Untyped_Collection) -> bool
-{
-    if collection == nil do return false
-    for &chunk in collection.chunks do untyped_chunk_destroy(&chunk, collection.allocator)
-    delete(collection.chunks)
-    collection^ = {}
-    return true
-}
-
-untyped_collection_sub_allocate :: proc(collection: ^Untyped_Collection) -> rawptr
-{
-    if collection == nil do return nil
-
-    sync.atomic_mutex_lock(&collection.mutex)
-    defer sync.atomic_mutex_unlock(&collection.mutex)
-    
-    if data := untyped_chunk_sub_allocate(collection.seek); data != nil
-    {
-        collection.sub_allocations += 1
-        if untyped_chunk_is_full(collection.seek) do untyped_collection_seek_to_next(collection)
-        return data
-    }
-
-    if untyped_collection_is_full(collection)
-    {
-        if !untyped_collection_create_chunk(collection) do return nil
-        last := untyped_collection_get_last(collection)
-        data := untyped_chunk_sub_allocate(last)
-        if data == nil do return nil
-
-        collection.sub_allocations += 1
-        collection.seek = last
-        return data
-    }
-    else
-    {
-        for &chunk, i in collection.chunks
-        {
-            if untyped_chunk_is_full(&chunk) do continue
-            data := untyped_chunk_sub_allocate(&chunk)
-            if data == nil do continue
-
-            collection.sub_allocations += 1
-            collection.seek = &chunk
-            if untyped_chunk_is_full(&chunk) do untyped_collection_seek_to_next(collection)
-            return data
-        }
-    }
-    
-    return nil
-}
-
-untyped_collection_free :: proc(collection: ^Untyped_Collection, data: rawptr)
-{
-    if collection == nil || data == nil do return
-
-    sync.atomic_mutex_lock(&collection.mutex)
-    defer sync.atomic_mutex_unlock(&collection.mutex)
-
-    for &chunk, i in collection.chunks
-    {
-        if !untyped_chunk_has(&chunk, data) do continue
-        if !untyped_chunk_free(&chunk, data) do return
-        collection.sub_allocations -= 1
-        if untyped_chunk_is_empty(&chunk) && untyped_collection_get_empty_chunk_count(collection) > 1
-        {    
-            untyped_collection_destroy_chunk(collection, i)
-            return
-        }
-
-        if cast(uintptr)&chunk < cast(uintptr)chunk.seek do collection.seek = &chunk
-        return
-    }
-}
-
-@(private)
-untyped_collection_seek_to_next :: proc(collection: ^Untyped_Collection)
-{
-    last := untyped_collection_get_last(collection)
-    next := mem.ptr_offset(collection.seek, 1)
-    uptr_last := uintptr(last)
-    uptr_next := uintptr(next)
-    collection.seek = transmute(^Untyped_Chunk)min(uptr_next, uptr_last)
-}
-
-untyped_collection_get_last :: proc "contextless" (collection: ^Untyped_Collection) -> ^Untyped_Chunk
-{
-    return &collection.chunks[max(0, len(collection.chunks) - 1)]
-}
-
-untyped_collection_is_full :: proc "contextless" (collection: ^Untyped_Collection) -> bool
-{
-    if collection == nil do return false
-    for &chunk in collection.chunks do if !untyped_chunk_is_full(&chunk) do return false
-    return true
-}
-
-untyped_collection_create_chunk :: proc(collection: ^Untyped_Collection) -> bool
-{
-    if collection == nil do return false
-    chunk, created := untyped_chunk_create(collection.slot_size, collection.slot_data_offset, collection.chunk_capacity, collection.allocator)
-    if !created do return false
-    append(&collection.chunks, chunk)
-    return true
-}
-
-untyped_collection_destroy_chunk :: proc(collection: ^Untyped_Collection, index: int) -> bool
-{
-    if collection == nil || index < 1 do return false
-    chunk := &collection.chunks[index]
-    if collection.seek == chunk do collection.seek = raw_data(collection.chunks)
-    untyped_chunk_destroy(chunk, collection.allocator)
-    unordered_remove(&collection.chunks, index)
-    return true
-}
-
-untyped_collection_get_empty_chunk_count :: proc "contextless" (collection: ^Untyped_Collection) -> int
-{
-    count := 0
-    for &chunk in collection.chunks do if untyped_chunk_is_empty(&chunk) do count += 1
     return count
 }
 
