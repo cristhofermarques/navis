@@ -155,7 +155,7 @@ bgfx_streamer_require_asset :: proc(streamer: ^Streamer, bgfx_streamer: ^BGFX_St
     This means that shader assets have a profile prefix, but its not required to be passed in 'asset_name' parameter.
     Bellow line do this job, it adds the profile prefix depending on current bgfx renderer type.
     */
-    required_asset_name := asset_type == .Shader ? bgfx.shader_profile_prefixed_name(bgfx_get_shader_profile(), asset_name, context.temp_allocator) : asset_name
+    required_asset_name := asset_type == .Shader ? bgfx.shader_profile_prefix(bgfx_get_shader_profile(), asset_name, context.temp_allocator) : asset_name
 
     if streamer_require_asset(streamer, required_asset_name, auto_cast on_bgfx_asset_loaded, load_data) == nil
     {
@@ -417,26 +417,6 @@ bgfx_asset_destroy :: proc(asset: ^BGFX_Asset)
 
         case .Texture:
             bgfx.destroy_texture(asset.handle)
-    }
-}
-
-bgfx_compile_shader :: proc(input_path, output_directory_path, varyingdef_path: string, type: bgfx.Shader_Type, profiles: bit_set[bgfx.Shader_Profile], as_ignore := false)
-{
-    shader_name_with_ext := filepath.base(input_path)
-    shader_name_ext := filepath.ext(shader_name_with_ext)
-    shader_name_ext_index := strings.last_index(shader_name_with_ext, shader_name_ext)
-    shader_name := shader_name_with_ext[:shader_name_ext_index]
-    shader_asset: Shader_Asset
-    if !os.is_dir(output_directory_path) do os.make_directory(output_directory_path)
-    for profile in bgfx.Shader_Profile
-    {
-        is_in := profile in profiles
-        if as_ignore ? is_in : !is_in do continue
-        profile_flag := bgfx.shader_profile_to_flag(profile, string)
-        shader_path, shader_path_allocation_error := strings.concatenate({output_directory_path, "/", profile_flag, "_", shader_name, ".", profile_flag}, context.temp_allocator)
-        if shader_path_allocation_error != .None do break
-        bgfx.compile_shader(input_path, shader_path, varyingdef_path, type, profile)
-        if !os.is_file(shader_path) do break
     }
 }
 
